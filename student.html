@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบระเบียนสะสม - นักศึกษา</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- ======= SIDEBAR ======= -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">CBD</div>
+      <div class="brand-text">
+        <h2 data-i18n="brandShort">ระเบียนสะสม</h2>
+        <p data-i18n="deptShort">คอมพิวเตอร์ธุรกิจดิจิทัล</p>
+      </div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sidebar-avatar">S</div>
+      <div class="user-info">
+        <div class="name" id="sidebar-name">...</div>
+        <div class="role" id="sidebar-role" data-i18n="student">นักศึกษา</div>
+        <div class="role" id="sidebar-userid" style="font-size:.66rem;opacity:.5"></div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section" data-i18n="sectionMain">เมนูหลัก</div>
+      <button class="nav-link active" data-view="form">
+        <span class="nav-icon">&#9998;</span>
+        <span data-i18n="myForm">กรอกระเบียนสะสม</span>
+      </button>
+      <button class="nav-link" data-view="notifications" onclick="loadNotifications()">
+        <span class="nav-icon">&#9679;</span>
+        <span data-i18n="notifications">การแจ้งเตือน</span>
+        <span class="nav-badge notif-badge" style="display:none">0</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn btn-primary btn-block btn-sm" id="back-admin-btn" style="display:none;margin-bottom:8px" onclick="location.href='admin.html'">&#8592; <span data-i18n="backAdminPage">หน้าแอดมิน</span></button>
+      <button class="btn btn-secondary btn-block btn-sm" data-action="logout" data-i18n="logout">
+        ออกจากระบบ
+      </button>
+    </div>
+  </aside>
+
+  <!-- ======= MAIN ======= -->
+  <div class="main-content">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <button class="icon-btn" id="sidebar-toggle" title="พับ/ขยายเมนู">&#9776;</button>
+      <div class="topbar-title">
+        <span data-i18n="appName">ระบบระเบียนสะสมออนไลน์</span>
+        <span class="topbar-sub" data-i18n="dept">แผนกวิชาคอมพิวเตอร์ธุรกิจดิจิทัล</span>
+      </div>
+      <div class="topbar-actions">
+        <span id="form-status-badge"></span>
+        <div style="position:relative">
+          <button class="icon-btn" onclick="toggleNotifDropdown()" title="การแจ้งเตือน">
+            &#128276;
+            <sup class="notif-badge" style="font-size:9px;color:red;line-height:1;display:none">&#9679;</sup>
+          </button>
+          <div class="notif-dropdown" id="notif-dropdown">
+            <div class="notif-head">
+              <span data-i18n="notifDropTitle">การแจ้งเตือน</span>
+              <button class="btn btn-sm btn-secondary" onclick="loadNotifications()" data-i18n="refresh">รีเฟรช</button>
+            </div>
+            <div class="notif-list" id="notif-list-drop"></div>
+          </div>
+        </div>
+        <button class="icon-btn" data-action="toggle-theme" title="สลับธีม">
+          <span class="theme-toggle-icon">🌙</span>
+        </button>
+        <button class="icon-btn" data-action="toggle-lang" title="เปลี่ยนภาษา">
+          <span class="lang-toggle-label">EN</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- VIEW: FORM (split) -->
+    <div id="view-form" class="view-split active">
+
+      <!-- Step tabs + action buttons -->
+      <div class="form-panel-head">
+        <div class="step-tabs">
+          <button class="step-btn active" onclick="goToPage(1)">
+            <span class="step-num">1</span> <span data-i18n="step1">ข้อมูลส่วนตัว</span>
+          </button>
+          <button class="step-btn" onclick="goToPage(2)">
+            <span class="step-num">2</span> <span data-i18n="step2">ข้อมูลครอบครัว</span>
+          </button>
+          <button class="step-btn" onclick="goToPage(3)">
+            <span class="step-num">3</span> <span data-i18n="step3Short">เพื่อน &amp; สุขภาพ</span>
+          </button>
+          <button class="step-btn" onclick="goToPage(4)">
+            <span class="step-num">4</span> <span data-i18n="step4Short">ความสามารถ &amp; แผนที่</span>
+          </button>
+        </div>
+        <div class="form-actions">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="autosave-indicator" style="font-size:11px;color:var(--text-sub)"></span>
+            <button class="btn btn-success btn-sm" id="submit-btn" onclick="submitForm()" data-i18n="submitForm">ส่งเอกสาร</button>
+            <button class="btn btn-outline btn-sm no-print" onclick="printDocument()" data-i18n="printPdf">พิมพ์ / PDF</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SPLIT LAYOUT -->
+      <div class="split-view">
+
+        <!-- LEFT: Form -->
+        <div class="split-left">
+          <form id="student-form" onsubmit="return false" class="form-body">
+
+            <!-- PAGE 1 -->
+            <div class="form-page">
+              <div class="form-section" data-i18n="personalInfo">1.1 ข้อมูลส่วนตัว</div>
+
+              <!-- รหัสนักศึกษา -->
+              <div class="form-group">
+                <label class="form-label" data-i18n="studentCodeLabel">รหัสนักศึกษา</label>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px">
+                  <div style="display:flex;gap:14px;flex-shrink:0">
+                    <label class="form-check"><input type="radio" name="photo_type" value="pvs" checked onchange="setDocPhotoType('pvs')"> <span data-i18n="pvsProg">ปวส.</span></label>
+                    <label class="form-check"><input type="radio" name="photo_type" value="pvc" onchange="setDocPhotoType('pvc')"> <span data-i18n="pvcProg">ปวช.</span></label>
+                  </div>
+                  <div id="code-pvs-wrap" style="flex:1;min-width:140px">
+                    <input type="text" name="student_code" class="form-control" data-i18n="studentCodePvsPH" placeholder="รหัสนักศึกษา ปวส." oninput="triggerPreview()">
+                  </div>
+                  <div id="code-pvc-wrap" style="flex:1;min-width:140px;display:none">
+                    <input type="text" name="student_code_pvs" class="form-control" data-i18n="studentCodePvcPH" placeholder="รหัสนักศึกษา ปวช." oninput="triggerPreview()">
+                  </div>
+                </div>
+              </div>
+
+              <!-- รูปถ่าย -->
+              <div class="form-group">
+                <label class="form-label" data-i18n="photo1inch">รูปถ่าย (1 นิ้ว)</label>
+                <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
+                  <label style="cursor:pointer">
+                    <span class="btn btn-outline btn-sm" style="pointer-events:none" data-i18n="selectPhoto">เลือกรูป</span>
+                    <input type="file" accept="image/*" style="display:none" onchange="handlePhotoUpload(this)">
+                  </label>
+                  <span id="photo-filename" style="font-size:12px;color:var(--text-sub)" data-i18n="noPhotoText">ยังไม่ได้เลือกรูป</span>
+                  <button type="button" class="btn btn-sm" style="color:#dc2626;background:none;border:1px solid #dc2626;padding:2px 8px;font-size:11px;display:none" id="photo-clear-btn" onclick="clearStudentPhoto()" data-i18n="deletePhoto">ลบรูป</button>
+                </div>
+                <div id="photo-preview-thumb" style="margin-top:8px;display:none">
+                  <img id="photo-thumb-img" style="width:72px;height:100px;object-fit:cover;border:1px solid #ccc;border-radius:2px" alt="รูปตัวอย่าง">
+                </div>
+              </div>
+
+              <!-- ชื่อ-นามสกุล -->
+              <div class="form-row-3">
+                <div class="form-group">
+                  <label class="form-label"><span data-i18n="prefix">คำนำหน้า</span> <span class="required">*</span></label>
+                  <select name="prefix" class="form-control" onchange="triggerPreview()">
+                    <option value="">-- <span data-i18n="select">เลือก</span> --</option>
+                    <option>นาย</option><option>นางสาว</option><option>นาง</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label"><span data-i18n="firstName">ชื่อ</span> <span class="required">*</span></label>
+                  <input type="text" name="first_name_th" class="form-control" data-i18n="firstName" placeholder="ชื่อ" required oninput="triggerPreview()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label"><span data-i18n="lastName">นามสกุล</span> <span class="required">*</span></label>
+                  <input type="text" name="last_name_th" class="form-control" data-i18n="lastName" placeholder="นามสกุล" required oninput="triggerPreview()">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" data-i18n="nickname">ชื่อเล่น</label>
+                <input type="text" name="nickname" class="form-control" data-i18n="nickname" placeholder="ชื่อเล่น" oninput="triggerPreview()">
+              </div>
+              <div class="form-row-3">
+                <div class="form-group">
+                  <label class="form-label" data-i18n="gender">เพศ</label>
+                  <select name="gender" class="form-control" onchange="triggerPreview()">
+                    <option value="">-- <span data-i18n="select">เลือก</span> --</option>
+                    <option value="male" data-i18n="male">ชาย</option>
+                    <option value="female" data-i18n="female">หญิง</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label"><span data-i18n="dob">วันเดือนปีเกิด</span> <span class="required">*</span></label>
+                  <input type="date" name="date_of_birth" class="form-control" required oninput="triggerPreview()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" data-i18n="bloodType">หมู่โลหิต</label>
+                  <select name="blood_type" class="form-control" onchange="triggerPreview()">
+                    <option value="">-- <span data-i18n="select">เลือก</span> --</option>
+                    <option>A</option><option>B</option><option>AB</option><option>O</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row-3">
+                <div class="form-group">
+                  <label class="form-label" data-i18n="race">เชื้อชาติ</label>
+                  <input type="text" name="race" class="form-control" data-i18n="race" placeholder="เชื้อชาติ" oninput="triggerPreview()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" data-i18n="nationality">สัญชาติ</label>
+                  <input type="text" name="nationality" class="form-control" data-i18n="nationality" placeholder="สัญชาติ" oninput="triggerPreview()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" data-i18n="religion">ศาสนา</label>
+                  <input type="text" name="religion" class="form-control" data-i18n="religion" placeholder="ศาสนา" oninput="triggerPreview()">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label"><span data-i18n="idCard">เลขประจำตัวประชาชน</span> <span class="required">*</span></label>
+                <input type="text" name="id_card_number" class="form-control" placeholder="1-2345-67890-12-3" maxlength="13"
+                  oninput="this.value=this.value.replace(/\D/g,'');triggerPreview()">
+              </div>
+
+              <div class="form-section" data-i18n="addressRegTitle">ที่อยู่ตามทะเบียนบ้าน</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" data-i18n="houseNo">บ้านเลขที่</label>
+                  <input type="text" name="address_no" class="form-control" placeholder="123/45" oninput="triggerPreview()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" data-i18n="villageNo">หมู่ที่</label>
+                  <input type="text" name="village_no" class="form-control" placeholder="1" oninput="triggerPreview()">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" data-i18n="alley">ซอย</label>
+                  <input type="text" name="alley" class="form-control" oninput="triggerPreview()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" data-i18n="road">ถนน</label>
+                  <input type="text" name="road" class="form-control" oninput="triggerPreview()">
+                </div>
+              </div>
+              <div class="form-row-3">
+                <div class="form-group">
+                  <label class="form-label"><span data-i18n="subdistrict">ตำบล/แขวง</span> <span class="required">*</span></label>
+                  <input type="text" name="subdistrict" class="form-control" oninput="triggerPreview()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label"><span data-i18n="district">อำเภอ/เขต</span> <span class="required">*</span></label>
+                  <input type="text" name="district" class="form-control" oninput="triggerPreview()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label"><span data-i18n="province">จังหวัด</span> <span class="required">*</span></label>
+                  <input type="text" name="province" class="form-control" oninput="triggerPreview()">
+                </div>
+              </div>
+              <div class="form-row-3">
+                <div class="form-group">
+                  <label class="form-label" data-i18n="postalCode">รหัสไปรษณีย์</label>
+                  <input type="text" name="postal_code" class="form-control" maxlength="5" oninput="triggerPreview()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label"><span data-i18n="phone">โทรศัพท์</span> <span class="required">*</span></label>
+                  <input type="tel" name="phone" class="form-control" placeholder="08X-XXX-XXXX" oninput="triggerPreview()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" data-i18n="email">อีเมล</label>
+                  <input type="email" name="email" class="form-control" oninput="triggerPreview()">
+                </div>
+              </div>
+
+              <div class="form-section" data-i18n="siblings">พี่น้อง</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" data-i18n="siblingSameBothCount">พี่ร่วมบิดามารดา (คน)</label>
+                  <input type="number" name="siblings_same_both" class="form-control" min="0" value="0" oninput="triggerPreview()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" data-i18n="siblingYoungerBothCount">น้องร่วมบิดามารดา (คน)</label>
+                  <input type="number" name="siblings_younger_same_both" class="form-control" min="0" value="0" oninput="triggerPreview()">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" data-i18n="siblingDiffFatherCount">พี่ต่างบิดามารดา (คน)</label>
+                  <input type="number" name="siblings_diff_father" class="form-control" min="0" value="0" oninput="triggerPreview()">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" data-i18n="siblingYoungerDiffCount">น้องต่างบิดามารดา (คน)</label>
+                  <input type="number" name="siblings_younger_diff" class="form-control" min="0" value="0" oninput="triggerPreview()">
+                </div>
+              </div>
+
+              <div class="form-section" data-i18n="fatherSectionTitle">1.2.1 ข้อมูลบิดา</div>
+              <div class="form-group">
+                <label class="form-label" data-i18n="fatherNameLabel">ชื่อ-สกุล บิดา</label>
+                <input type="text" name="father_name" class="form-control" oninput="triggerPreview()">
+              </div>
+              <div class="form-group">
+                <label class="form-label" data-i18n="parentStatusLabel">สถานะ</label>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px">
+                  <label class="form-check"><input type="radio" name="father_alive" value="alive" checked onchange="triggerPreview()"> <span data-i18n="alive">มีชีวิตอยู่</span></label>
+                  <label class="form-check"><input type="radio" name="father_alive" value="deceased" onchange="triggerPreview()"> <span data-i18n="deceased">ถึงแก่กรรม</span></label>
+                  <input type="text" name="father_deceased_when" class="form-control" data-i18n="deceasedWhenPH" placeholder="ถึงแก่กรรมเมื่อ..." oninput="triggerPreview()" style="flex:1;min-width:160px">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label" data-i18n="occupation">อาชีพ</label><input type="text" name="father_occupation" class="form-control" oninput="triggerPreview()"></div>
+                <div class="form-group"><label class="form-label" data-i18n="workplace">สถานที่ทำงาน</label><input type="text" name="father_workplace" class="form-control" oninput="triggerPreview()"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label" data-i18n="income">รายได้ต่อเดือน</label><input type="text" name="father_income" class="form-control" oninput="triggerPreview()"></div>
+                <div class="form-group"><label class="form-label" data-i18n="education">ระดับการศึกษาสูงสุด</label><input type="text" name="father_education" class="form-control" oninput="triggerPreview()"></div>
+              </div>
+              <div class="form-group"><label class="form-label" data-i18n="currentAddress">ที่อยู่ปัจจุบัน</label><textarea name="father_address" class="form-control" rows="2" oninput="triggerPreview()"></textarea></div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label" data-i18n="phone">โทรศัพท์</label><input type="tel" name="father_phone" class="form-control" oninput="triggerPreview()"></div>
+                <div class="form-group"><label class="form-label" data-i18n="email">อีเมล</label><input type="email" name="father_email" class="form-control" oninput="triggerPreview()"></div>
+              </div>
+              <div class="form-group"><label class="form-label" data-i18n="otherInfo">ข้อมูลอื่นๆ</label><input type="text" name="father_other" class="form-control" oninput="triggerPreview()"></div>
+
+              <div class="form-section" data-i18n="motherSectionTitle">1.2.1 ข้อมูลมารดา</div>
+              <div class="form-group">
+                <label class="form-label" data-i18n="motherNameLabel">ชื่อ-สกุล มารดา</label>
+                <input type="text" name="mother_name" class="form-control" oninput="triggerPreview()">
+              </div>
+              <div class="form-group">
+                <label class="form-label" data-i18n="parentStatusLabel">สถานะ</label>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px">
+                  <label class="form-check"><input type="radio" name="mother_alive" value="alive" checked onchange="triggerPreview()"> <span data-i18n="alive">มีชีวิตอยู่</span></label>
+                  <label class="form-check"><input type="radio" name="mother_alive" value="deceased" onchange="triggerPreview()"> <span data-i18n="deceased">ถึงแก่กรรม</span></label>
+                  <input type="text" name="mother_deceased_when" class="form-control" data-i18n="deceasedWhenPH" placeholder="ถึงแก่กรรมเมื่อ..." oninput="triggerPreview()" style="flex:1;min-width:160px">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label" data-i18n="occupation">อาชีพ</label><input type="text" name="mother_occupation" class="form-control" oninput="triggerPreview()"></div>
+                <div class="form-group"><label class="form-label" data-i18n="workplace">สถานที่ทำงาน</label><input type="text" name="mother_workplace" class="form-control" oninput="triggerPreview()"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label" data-i18n="income">รายได้ต่อเดือน</label><input type="text" name="mother_income" class="form-control" oninput="triggerPreview()"></div>
+                <div class="form-group"><label class="form-label" data-i18n="education">ระดับการศึกษาสูงสุด</label><input type="text" name="mother_education" class="form-control" oninput="triggerPreview()"></div>
+              </div>
+              <div class="form-group"><label class="form-label" data-i18n="currentAddress">ที่อยู่ปัจจุบัน</label><textarea name="mother_address" class="form-control" rows="2" oninput="triggerPreview()"></textarea></div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label" data-i18n="phone">โทรศัพท์</label><input type="tel" name="mother_phone" class="form-control" oninput="triggerPreview()"></div>
+                <div class="form-group"><label class="form-label" data-i18n="email">อีเมล</label><input type="email" name="mother_email" class="form-control" oninput="triggerPreview()"></div>
+              </div>
+              <div class="form-group"><label class="form-label" data-i18n="otherInfo">ข้อมูลอื่นๆ</label><input type="text" name="mother_other" class="form-control" oninput="triggerPreview()"></div>
+
+              <div class="form-page-nav">
+                <div class="nav-spacer"></div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="goToPage(2)" data-i18n="nextArrow">ถัดไป &rarr;</button>
+              </div>
+            </div><!-- /page 1 -->
+
+            <!-- PAGE 2 -->
+            <div class="form-page" style="display:none">
+              <div class="form-section" data-i18n="parentStatus">1.2.2 สถานภาพบิดามารดา</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <label class="form-check"><input type="radio" name="parent_status" value="together_registered" onchange="triggerPreview()"> <span data-i18n="psTogether1">บิดามารดาอยู่ร่วมกัน โดย จดทะเบียนสมรส</span></label>
+                <label class="form-check"><input type="radio" name="parent_status" value="together_unregistered" onchange="triggerPreview()"> <span data-i18n="psTogether2">บิดามารดาอยู่ร่วมกัน โดย ไม่ได้จดทะเบียนสมรส</span></label>
+                <label class="form-check"><input type="radio" name="parent_status" value="divorced_father" onchange="triggerPreview()"> <span data-i18n="psDivorcedF">บิดามารดาหย่าร้างกัน โดย บิดาแต่งงานใหม่</span></label>
+                <label class="form-check"><input type="radio" name="parent_status" value="divorced_mother" onchange="triggerPreview()"> <span data-i18n="psDivorcedM">บิดามารดาหย่าร้างกัน โดย มารดาแต่งงานใหม่</span></label>
+                <label class="form-check"><input type="radio" name="parent_status" value="divorced_both" onchange="triggerPreview()"> <span data-i18n="psDivorcedBoth">บิดามารดาหย่าร้างกัน โดย ทั้งสองแต่งงานใหม่</span></label>
+              </div>
+              <div class="form-group" style="margin-top:10px">
+                <label class="form-label" data-i18n="additionalDetailLabel">รายละเอียดเพิ่มเติม</label>
+                <input type="text" name="parent_status_detail" class="form-control" oninput="triggerPreview()">
+              </div>
+
+              <div class="form-section" data-i18n="currentAddressStudentSection">1.3 ที่อยู่ปัจจุบันของผู้เรียน</div>
+              <div class="form-group"><label class="form-label" data-i18n="currentAddress">ที่อยู่ปัจจุบัน</label><textarea name="current_address" class="form-control" rows="2" oninput="triggerPreview()"></textarea></div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label" data-i18n="phone">โทรศัพท์</label><input type="tel" name="current_phone" class="form-control" oninput="triggerPreview()"></div>
+                <div class="form-group"><label class="form-label" data-i18n="email">อีเมล</label><input type="email" name="current_email" class="form-control" oninput="triggerPreview()"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label" data-i18n="addressType">ประเภทที่อยู่</label><input type="text" name="address_type" class="form-control" data-i18n="addressTypePH" placeholder="บ้านตัวเอง/เช่า/หอพัก" oninput="triggerPreview()"></div>
+                <div class="form-group"><label class="form-label" data-i18n="nearbyPlace">สถานที่ใกล้เคียง</label><input type="text" name="nearby_place" class="form-control" oninput="triggerPreview()"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label" data-i18n="livingWith">อาศัยอยู่กับ</label><input type="text" name="living_with" class="form-control" oninput="triggerPreview()"></div>
+                <div class="form-group"><label class="form-label" data-i18n="livingRelation">ความเกี่ยวข้อง</label><input type="text" name="living_relation" class="form-control" oninput="triggerPreview()"></div>
+              </div>
+
+              <div class="form-section" data-i18n="guardianSection">ข้อมูลผู้ปกครอง</div>
+              <div class="form-group"><label class="form-label" data-i18n="guardianNameLabel">ชื่อ-สกุล ผู้ปกครอง</label><input type="text" name="guardian_name" class="form-control" oninput="triggerPreview()"></div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label" data-i18n="occupation">อาชีพ</label><input type="text" name="guardian_occupation" class="form-control" oninput="triggerPreview()"></div>
+                <div class="form-group"><label class="form-label" data-i18n="workplace">สถานที่ทำงาน</label><input type="text" name="guardian_workplace" class="form-control" oninput="triggerPreview()"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label" data-i18n="education">ระดับการศึกษาสูงสุด</label><input type="text" name="guardian_education" class="form-control" oninput="triggerPreview()"></div>
+                <div class="form-group"><label class="form-label" data-i18n="phone">โทรศัพท์</label><input type="tel" name="guardian_phone" class="form-control" oninput="triggerPreview()"></div>
+              </div>
+              <div class="form-group"><label class="form-label" data-i18n="currentAddress">ที่อยู่ปัจจุบัน</label><textarea name="guardian_address" class="form-control" rows="2" oninput="triggerPreview()"></textarea></div>
+              <div class="form-group"><label class="form-label" data-i18n="email">อีเมล</label><input type="email" name="guardian_email" class="form-control" oninput="triggerPreview()"></div>
+
+              <div class="form-section" data-i18n="counselorSection2">บุคคลที่ผู้เรียนขอรับการปรึกษา (นอกวิทยาลัยฯ)</div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label" data-i18n="counselorName">ชื่อ-สกุล</label><input type="text" name="counselor_name" class="form-control" oninput="triggerPreview()"></div>
+                <div class="form-group"><label class="form-label" data-i18n="counselorRelation">ความเกี่ยวข้อง</label><input type="text" name="counselor_relation" class="form-control" oninput="triggerPreview()"></div>
+              </div>
+              <div class="form-group"><label class="form-label" data-i18n="counselorContactAddr">ที่อยู่ติดต่อได้</label><textarea name="counselor_address" class="form-control" rows="2" oninput="triggerPreview()"></textarea></div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label" data-i18n="postalCode">รหัสไปรษณีย์</label><input type="text" name="counselor_postal" class="form-control" maxlength="5" oninput="triggerPreview()"></div>
+                <div class="form-group"><label class="form-label" data-i18n="phone">โทรศัพท์</label><input type="tel" name="counselor_phone" class="form-control" oninput="triggerPreview()"></div>
+              </div>
+
+              <div class="form-page-nav">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="goToPage(1)" data-i18n="prevArrow">&larr; ย้อนกลับ</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="goToPage(3)" data-i18n="nextArrow">ถัดไป &rarr;</button>
+              </div>
+            </div><!-- /page 2 -->
+
+            <!-- PAGE 3 -->
+            <div class="form-page" style="display:none">
+              <div class="form-section" data-i18n="friendsSection">1.4 ข้อมูลเพื่อนสนิท</div>
+              <div class="table-wrap" style="margin-bottom:10px">
+                <table class="fi-table">
+                  <thead>
+                    <tr>
+                      <th data-i18n="friendName">ชื่อ-สกุล เพื่อนสนิท</th>
+                      <th data-i18n="friendSchool">สถานศึกษา/ชั้น/ห้อง</th>
+                      <th data-i18n="friendPhone">ที่อยู่/เบอร์โทรศัพท์</th>
+                      <th style="width:38px"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="friends-tbody"></tbody>
+                </table>
+              </div>
+              <button type="button" class="btn btn-outline btn-sm" onclick="addFriendRow()" data-i18n="addFriendBtn">+ เพิ่มเพื่อน</button>
+
+              <div class="form-section" style="margin-top:20px" data-i18n="healthInfo">2. ข้อมูลด้านสุขภาพ</div>
+              <div class="form-section" style="font-size:.8rem;margin-top:0" data-i18n="illnessHistory">2.1 ประวัติการเจ็บป่วย</div>
+              <div class="form-group"><label class="form-label" data-i18n="chronicDisease">2.1.1 โรคประจำตัว</label><input type="text" name="chronic_disease" class="form-control" data-i18n="specifyOrDash" placeholder="ระบุ หรือ '-' หากไม่มี" oninput="triggerPreview()"></div>
+              <div class="form-group"><label class="form-label" data-i18n="pastDisease">2.1.2 โรคที่เคยเป็น</label><input type="text" name="past_disease" class="form-control" data-i18n="specifyOrDash" placeholder="ระบุ หรือ '-' หากไม่มี" oninput="triggerPreview()"></div>
+              <div class="form-group"><label class="form-label" data-i18n="allergy">2.1.3 อาหาร/สาร/ยาที่แพ้</label><input type="text" name="allergy" class="form-control" data-i18n="specifyOrDash" placeholder="ระบุ หรือ '-' หากไม่มี" oninput="triggerPreview()"></div>
+              <div class="form-group"><label class="form-label" data-i18n="surgeryHistory">2.1.4 การผ่าตัดและอุบัติเหตุร้ายแรง</label><input type="text" name="surgery_history" class="form-control" data-i18n="specifyOrDash" placeholder="ระบุ หรือ '-' หากไม่มี" oninput="triggerPreview()"></div>
+
+              <div class="form-section" data-i18n="senses">2.2 การตรวจสายตา การได้ยิน และช่องปาก</div>
+              <div class="form-group"><label class="form-label" data-i18n="visionCondition">2.2.1 สภาพสายตา</label><input type="text" name="vision_condition" class="form-control" data-i18n="visionPH" placeholder="ปกติ / ใส่แว่น / ..." oninput="triggerPreview()"></div>
+              <div class="form-group"><label class="form-label" data-i18n="hearingCondition">2.2.2 สภาพการได้ยิน</label><input type="text" name="hearing_condition" class="form-control" data-i18n="hearingPH" placeholder="ปกติ / บกพร่อง / ..." oninput="triggerPreview()"></div>
+              <div class="form-group"><label class="form-label" data-i18n="dentalCondition">2.2.3 สภาพฟันและสุขภาพช่องปาก</label><input type="text" name="dental_condition" class="form-control" data-i18n="dentalPH" placeholder="ปกติ / จัดฟัน / ..." oninput="triggerPreview()"></div>
+              <div class="form-group"><label class="form-label" data-i18n="mentalBehavior">2.3 พฤติกรรมและอาการทางจิตเวช</label><textarea name="mental_behavior" class="form-control" rows="3" data-i18n="mentalBehaviorPH" placeholder="ระบุ หรือ 'ปกติ'" oninput="triggerPreview()"></textarea></div>
+
+              <div class="form-page-nav">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="goToPage(2)" data-i18n="prevArrow">&larr; ย้อนกลับ</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="goToPage(4)" data-i18n="nextArrow">ถัดไป &rarr;</button>
+              </div>
+            </div><!-- /page 3 -->
+
+            <!-- PAGE 4 -->
+            <div class="form-page" style="display:none">
+              <div class="form-section" data-i18n="specialAbilities">3. ความสามารถพิเศษของผู้เรียน</div>
+              <div class="form-group">
+                <textarea name="special_abilities" class="form-control" rows="5"
+                  data-i18n="abilitiesPH"
+                  placeholder="เช่น ดนตรี (กีตาร์ ระดับ...), กีฬา (ฟุตบอล ระดับ...), ศิลปะ, คอมพิวเตอร์, ภาษา..."
+                  oninput="triggerPreview()"></textarea>
+              </div>
+
+              <div class="form-section" data-i18n="routeMap">4. แผนที่การเดินทางจากบ้านมาวิทยาลัยฯ</div>
+              <p style="font-size:.8rem;color:var(--text-sub);margin-bottom:10px">
+                <span data-i18n="mapInstruction">screenshot จาก Google Maps แล้วอัปโหลดรูปด้านล่าง</span>
+                <a href="https://maps.google.com" target="_blank" style="color:#1d4ed8;text-decoration:underline;margin-left:6px" data-i18n="openGoogleMaps">เปิด Google Maps</a>
+              </p>
+              <div class="form-group">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <label style="cursor:pointer">
+                    <span class="btn btn-outline btn-sm" style="pointer-events:none" data-i18n="selectMapPhoto">เลือกรูปแผนที่</span>
+                    <input type="file" accept="image/*" style="display:none" onchange="handleMapUpload(this)">
+                  </label>
+                  <span id="map-filename" style="font-size:12px;color:var(--text-sub)" data-i18n="noPhotoText">ยังไม่ได้เลือกรูป</span>
+                  <button type="button" class="btn btn-sm" style="color:#dc2626;background:none;border:1px solid #dc2626;padding:2px 8px;font-size:11px;display:none" id="map-clear-btn" onclick="clearMapPhoto()" data-i18n="deletePhoto">ลบรูป</button>
+                </div>
+                <div id="map-preview-thumb" style="margin-top:10px;display:none">
+                  <img id="map-thumb-img" style="max-width:100%;max-height:200px;border:1px solid #ccc;border-radius:4px" alt="แผนที่">
+                </div>
+              </div>
+
+              <div class="form-page-nav">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="goToPage(3)" data-i18n="prevArrow">&larr; ย้อนกลับ</button>
+                <div class="nav-spacer"></div>
+              </div>
+            </div><!-- /page 4 -->
+
+          </form>
+        </div><!-- /split-left -->
+
+        <!-- RIGHT: Preview -->
+        <div class="split-right">
+          <div class="preview-head">
+            <h3 data-i18n="previewTitle">ตัวอย่างเอกสาร</h3>
+            <button class="btn btn-sm btn-secondary no-print" onclick="printDocument()" data-i18n="printBtn">พิมพ์</button>
+          </div>
+          <div class="doc-wrap" id="preview-container"></div>
+        </div>
+
+      </div><!-- /split-view -->
+    </div><!-- /view-form -->
+
+    <!-- VIEW: NOTIFICATIONS -->
+    <div id="view-notifications" class="view">
+      <div class="page-body">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title" data-i18n="notifDropTitle">การแจ้งเตือน</div>
+              <div class="card-subtitle" data-i18n="notifSubtitle">ข้อความจากอาจารย์และระบบ</div>
+            </div>
+          </div>
+          <div id="notif-list" style="max-height:600px;overflow-y:auto"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /app-layout -->
+
+<div id="toast-container"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="assets/js/firebasedb.js"></script>
+<script src="assets/js/i18n.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/doc-renderer.js"></script>
+<script src="assets/js/student.js"></script>
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const session = getSession();
+    if (!session) { window.location.href = 'index.html'; return; }
+    initStudent();
+  });
+
+  document.addEventListener('click', e => {
+    const dd = document.getElementById('notif-dropdown');
+    if (dd && !e.target.closest('#notif-dropdown') && !e.target.closest('[onclick="toggleNotifDropdown()"]'))
+      dd.classList.remove('open');
+  });
+</script>
+</body>
+</html>

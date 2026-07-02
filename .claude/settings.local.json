@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\acer\\\\OneDrive\\\\Desktop\\\\Project_J\" -Recurse | Where-Object { !$_.PSIsContainer } | Select-Object @{N='Path';E={$_.FullName.Replace\\('C:\\\\Users\\\\acer\\\\OneDrive\\\\Desktop\\\\Project_J\\\\',''\\)}} | Format-Table -AutoSize)",
+      "Bash(node *)",
+      "PowerShell(python3 --version 2>$null; node --version 2>$null)",
+      "PowerShell($scratchpad = \"C:\\\\Users\\\\acer\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-acer-OneDrive-Desktop-Project-J\\\\60da0307-b4ed-40d5-aed7-2a990922bffb\\\\scratchpad\"; node \"$scratchpad\\\\create_excel.js\")",
+      "PowerShell(Start-Process \"C:\\\\Users\\\\acer\\\\OneDrive\\\\Desktop\\\\Project_J\\\\student_import_template.xlsx\")",
+      "PowerShell($scratchpad = \"C:\\\\Users\\\\acer\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-acer-OneDrive-Desktop-Project-J\\\\60da0307-b4ed-40d5-aed7-2a990922bffb\\\\scratchpad\"; node \"$scratchpad\\\\create_teacher_excel.js\")",
+      "PowerShell(Start-Process \"C:\\\\Users\\\\acer\\\\OneDrive\\\\Desktop\\\\Project_J\\\\teacher_template.xlsx\")",
+      "PowerShell($s = \"C:\\\\Users\\\\acer\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-acer-OneDrive-Desktop-Project-J\\\\60da0307-b4ed-40d5-aed7-2a990922bffb\\\\scratchpad\"; node \"$s\\\\create_teacher_excel.js\")",
+      "PowerShell(Get-ChildItem \"C:\\\\\" -Directory | Where-Object { $_.Name -match \"xampp|wamp|laragon|php|apache\" })",
+      "PowerShell(Get-ChildItem \"C:\\\\\", \"D:\\\\\", \"E:\\\\\" -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match \"xampp|wamp|laragon|php\" })",
+      "Bash(firebase deploy *)",
+      "Bash(firebase projects:list)"
+    ]
+  }
+}

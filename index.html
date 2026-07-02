@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบระเบียนสะสมออนไลน์ - เข้าสู่ระบบ</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-topbar">
+      <button class="icon-btn" data-action="toggle-theme" title="สลับธีม">
+        <span class="theme-toggle-icon">🌙</span>
+      </button>
+      <button class="icon-btn" data-action="toggle-lang" title="เปลี่ยนภาษา">
+        <span class="lang-toggle-label">EN</span>
+      </button>
+    </div>
+
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="login-logo-icon">CBD</div>
+        <h1 data-i18n="appName">ระบบระเบียนสะสมออนไลน์</h1>
+        <p data-i18n="dept">แผนกวิชาคอมพิวเตอร์ธุรกิจดิจิทัล</p>
+      </div>
+
+      <div class="error-box" id="error-box"></div>
+
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label" data-i18n="username">รหัสผู้ใช้</label>
+          <input type="text" id="user_id" name="user_id" class="form-control"
+            autocomplete="username" data-i18n="userIdPH" placeholder="กรอกรหัสผู้ใช้" required autofocus>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" data-i18n="password">รหัสผ่าน</label>
+          <div class="input-pw">
+            <input type="password" id="password" name="password" class="form-control"
+              autocomplete="current-password" data-i18n="passwordPH" placeholder="กรอกรหัสผ่าน" required>
+            <button type="button" class="pw-toggle" onclick="togglePass()">&#128065;</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="login-btn">
+          <span id="login-btn-text" data-i18n="loginBtn">เข้าสู่ระบบ</span>
+        </button>
+      </form>
+
+      <div class="divider" data-i18n="dividerTest">บัญชีสำหรับทดสอบ</div>
+
+      <div class="demo-panel">
+        <h4 data-i18n="testAccountsTitle">บัญชีทดสอบ (รหัสผ่าน: password)</h4>
+        <div class="demo-row">
+          <span class="demo-label">Admin</span>
+          <span class="demo-cred">admin001 / password</span>
+          <a class="demo-fill" href="javascript:void(0)" onclick="fillDemo('admin001','password')" data-i18n="fillBtn">กรอก</a>
+        </div>
+        <div class="demo-row">
+          <span class="demo-label" data-i18n="teacher">อาจารย์</span>
+          <span class="demo-cred">T001 / password</span>
+          <a class="demo-fill" href="javascript:void(0)" onclick="fillDemo('T001','password')" data-i18n="fillBtn">กรอก</a>
+        </div>
+        <div class="demo-row">
+          <span class="demo-label" data-i18n="student">นักศึกษา</span>
+          <span class="demo-cred">6701010001 / password</span>
+          <a class="demo-fill" href="javascript:void(0)" onclick="fillDemo('6701010001','password')" data-i18n="fillBtn">กรอก</a>
+        </div>
+      </div>
+
+      <p style="text-align:center;margin-top:16px;font-size:.72rem;color:var(--text-dim)" data-i18n="loginIssueText">
+        ปัญหาการเข้าสู่ระบบ? ติดต่อผู้ดูแลระบบ
+      </p>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="assets/js/firebasedb.js"></script>
+  <script src="assets/js/i18n.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    // @ts-nocheck
+    async function handleLogin(e) {
+      e.preventDefault();
+      const userId = document.getElementById('user_id').value.trim();
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('login-btn');
+      const errBox = document.getElementById('error-box');
+
+      if (!userId || !password) { showError(t('fillRequired')); return; }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px"></span> ' + t('loggingIn');
+      errBox.style.display = 'none';
+
+      try {
+        const res = await fetch('api/login.php', {
+          method: 'POST',
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({user_id: userId, password: password}),
+          credentials: 'include'
+        });
+        const data = await res.json();
+        if (data.success) {
+          setSession(data.data);
+          showToast(t('loginSuccess'), `${t('loginWelcome')} ${data.data.full_name}`, 'success');
+          setTimeout(() => redirect(data.data.role), 800);
+        } else {
+          showError(data.message || t('loginFailed'));
+        }
+      } catch (err) {
+        showError(t('tryAgain'));
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span data-i18n="loginBtn">' + t('loginBtn') + '</span>';
+      }
+    }
+
+    function redirect(role) {
+      if (role === 'admin') window.location.href = 'admin.html';
+      else if (role === 'teacher') window.location.href = 'teacher.html';
+      else window.location.href = 'student.html';
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error-box');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    function fillDemo(id, pass) {
+      document.getElementById('user_id').value = id;
+      document.getElementById('password').value = pass;
+    }
+
+    function togglePass() {
+      const inp = document.getElementById('password');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const session = getSession();
+      if (session?.role) redirect(session.role);
+    });
+  </script>
+</body>
+</html>

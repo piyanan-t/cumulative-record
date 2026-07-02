@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบระเบียนสะสม - อาจารย์</title>
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">CBD</div>
+      <div class="brand-text">
+        <h2 data-i18n="brandShort">ระเบียนสะสม</h2>
+        <p data-i18n="deptShort">คอมพิวเตอร์ธุรกิจดิจิทัล</p>
+      </div>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="sidebar-avatar">T</div>
+      <div class="user-info">
+        <div class="name" id="sidebar-name">...</div>
+        <div class="role" id="sidebar-role" data-i18n="teacher">อาจารย์</div>
+        <div class="role" id="sidebar-userid" style="font-size:.66rem;opacity:.5"></div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section" data-i18n="sectionMain">เมนูหลัก</div>
+      <button class="nav-link active" data-view="classrooms">
+        <span class="nav-icon">&#9632;</span><span data-i18n="myAdvisoryRoomsTitle">ห้องที่ปรึกษา</span>
+      </button>
+      <button class="nav-link" data-view="students">
+        <span class="nav-icon">&#9632;</span><span data-i18n="allStudentsNav">รายชื่อนักศึกษาทั้งหมด</span>
+      </button>
+      <button class="nav-link" data-view="dashboard">
+        <span class="nav-icon">&#9632;</span><span data-i18n="sectionOverview">แดชบอร์ด</span>
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn btn-primary btn-block btn-sm" id="back-admin-btn" style="display:none;margin-bottom:8px" onclick="location.href='admin.html'">&#8592; <span data-i18n="backAdminPage">หน้าแอดมิน</span></button>
+      <button class="btn btn-secondary btn-block btn-sm" data-action="logout" data-i18n="logout">ออกจากระบบ</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <header class="topbar">
+      <button class="icon-btn" id="sidebar-toggle">&#9776;</button>
+      <div class="topbar-title">
+        <span data-i18n="appName">ระบบระเบียนสะสมออนไลน์</span>
+        <span class="topbar-sub" data-i18n="dept">แผนกวิชาคอมพิวเตอร์ธุรกิจดิจิทัล</span>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn btn-outline btn-sm" onclick="openModal('notif-modal')" data-i18n="sendNotification">ส่งการแจ้งเตือน</button>
+        <button class="icon-btn" data-action="toggle-theme"><span class="theme-toggle-icon">🌙</span></button>
+        <button class="icon-btn" data-action="toggle-lang"><span class="lang-toggle-label">EN</span></button>
+      </div>
+    </header>
+
+    <!-- VIEW: ROOM DETAIL -->
+    <div id="view-room-detail" class="view">
+      <div class="page-body">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <button class="btn btn-secondary btn-sm" onclick="switchView('classrooms')" data-i18n="backArrow">&#8592; กลับ</button>
+            <div>
+              <h2 id="room-detail-name" style="font-size:1rem;font-weight:700;color:var(--text)">-</h2>
+              <div id="room-detail-sub" style="font-size:.78rem;color:var(--text-sub)">-</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-outline btn-sm" id="room-notif-btn" onclick="sendRoomNotif()" data-i18n="notifyNotFilledBtn">แจ้งเตือนยังไม่กรอก</button>
+          </div>
+        </div>
+
+        <div class="search-wrap" style="margin-bottom:12px">
+          <span class="search-ico">&#9906;</span>
+          <input type="text" id="room-search" class="form-control" data-i18n="studentRoomSearchPH" placeholder="ค้นหาชื่อ / รหัสนักศึกษา..." oninput="filterRoomStudents()">
+        </div>
+
+        <div class="card" style="margin-bottom:16px">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="fullNameHeader">ชื่อ-นามสกุล</th>
+                  <th data-i18n="studentCodeHeader">รหัสนักศึกษา</th>
+                  <th data-i18n="genderHeader">เพศ</th>
+                  <th data-i18n="statusHeader">สถานะ</th>
+                  <th style="text-align:center" data-i18n="actionsHeader">การดำเนินการ</th>
+                </tr>
+              </thead>
+              <tbody id="room-students-tbody">
+                <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted)" data-i18n="noStudentInRoom">ยังไม่มีนักศึกษาในห้องนี้</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="stat-grid" style="margin-bottom:10px">
+          <div class="stat-card">
+            <div class="stat-icon blue">S</div>
+            <div><div class="stat-label" data-i18n="totalStudents">นักศึกษาทั้งหมด</div><div class="stat-value" id="room-stat-total">-</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">&#10003;</div>
+            <div><div class="stat-label" data-i18n="filledLabel">กรอกแล้ว</div><div class="stat-value" id="room-stat-submitted" style="color:var(--success)">-</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">!</div>
+            <div><div class="stat-label" data-i18n="notFilledLabel">ยังไม่กรอก</div><div class="stat-value" id="room-stat-pending" style="color:var(--red-700)">-</div></div>
+          </div>
+        </div>
+
+        <div class="chart-grid">
+          <div class="card">
+            <div class="card-header"><div class="card-title" data-i18n="chartDocStatus">สถานะการกรอกเอกสาร</div></div>
+            <div class="card-body" style="padding:10px 16px"><canvas id="roomStatusChart" height="55"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title" data-i18n="byGender">เพศ</div></div>
+            <div class="card-body" style="padding:10px 16px"><canvas id="roomGenderChart" height="55"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title" data-i18n="byNationality">สัญชาติ</div></div>
+            <div class="card-body" style="padding:10px 16px"><canvas id="roomNatChart" height="55"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: DASHBOARD -->
+    <div id="view-dashboard" class="view">
+      <div class="page-body">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-icon blue">S</div>
+            <div><div class="stat-label" data-i18n="totalStudents">นักศึกษาทั้งหมด</div><div class="stat-value" id="dash-total">-</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">✓</div>
+            <div><div class="stat-label" data-i18n="filledLabel">กรอกแล้ว</div><div class="stat-value" id="dash-submitted" style="color:var(--success)">-</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">!</div>
+            <div><div class="stat-label" data-i18n="notFilledLabel">ยังไม่กรอก</div><div class="stat-value" id="dash-pending" style="color:var(--red-700)">-</div></div>
+          </div>
+        </div>
+
+        <div class="chart-grid">
+          <div class="card">
+            <div class="card-header"><div class="card-title" data-i18n="chartDocStatus">สถานะการกรอกเอกสาร</div></div>
+            <div class="card-body" style="padding:10px 16px"><canvas id="statusChart" height="55"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title" data-i18n="byClassroom">แยกตามห้องเรียน</div></div>
+            <div class="card-body" style="padding:10px 16px"><canvas id="classroomChart" height="55"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title" data-i18n="byGender">เพศ</div></div>
+            <div class="card-body" style="padding:10px 16px"><canvas id="tcGenderChart" height="55"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title" data-i18n="byNationality">สัญชาติ</div></div>
+            <div class="card-body" style="padding:10px 16px"><canvas id="tcNatChart" height="55"></canvas></div>
+          </div>
+          <div class="card" style="grid-column:1/-1">
+            <div class="card-header"><div class="card-title" data-i18n="yearDistChart">จำนวนนักศึกษาแต่ละชั้นปี</div></div>
+            <div class="card-body" style="padding:10px 16px"><canvas id="yearChart" height="40"></canvas></div>
+          </div>
+
+          <div class="card" style="grid-column:1/-1">
+            <div class="card-header"><div class="card-title" data-i18n="summaryByRoom">สรุปต่อห้องที่ปรึกษา</div></div>
+            <div class="card-body" style="padding:0">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th data-i18n="advisoryRoomCol">ห้องที่ปรึกษา</th>
+                      <th data-i18n="yearLevelHeader">ชั้นปี</th>
+                      <th style="text-align:center" data-i18n="totalStudents">ทั้งหมด</th>
+                      <th style="text-align:center;color:var(--success)" data-i18n="filledLabel">กรอกแล้ว</th>
+                      <th style="text-align:center;color:var(--red-700)" data-i18n="notFilledLabel">ยังไม่กรอก</th>
+                      <th style="text-align:center" data-i18n="progressCol">ความคืบหน้า</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="room-stats-tbody">
+                    <tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)" data-i18n="loading">กำลังโหลด...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: STUDENTS -->
+    <div id="view-students" class="view">
+      <div class="page-body">
+        <!-- Filters -->
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-header">
+            <div class="card-title" data-i18n="searchFilterTitle">ค้นหาและกรองข้อมูล</div>
+            <div class="card-actions">
+              <button class="btn btn-sm btn-secondary" onclick="resetFilters()" data-i18n="reset">รีเซต</button>
+              <button class="btn btn-sm btn-primary" onclick="applyFilters()" data-i18n="search">ค้นหา</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="form-row-auto">
+              <div class="form-group">
+                <label class="form-label" data-i18n="searchNameCodeLabel">ค้นหา (ชื่อ / รหัส)</label>
+                <div class="search-wrap">
+                  <span class="search-ico">&#9906;</span>
+                  <input type="text" id="search-input" class="form-control" data-i18n="searchNameCodePH" placeholder="ชื่อ / รหัสนักศึกษา..." oninput="applyFilters()">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" data-i18n="statusHeader">สถานะ</label>
+                <select id="filter-status" class="form-control" onchange="applyFilters()">
+                  <option value="" data-i18n="allStatuses">ทุกสถานะ</option>
+                  <option value="submitted" data-i18n="filledLabel">กรอกแล้ว</option>
+                  <option value="not_started" data-i18n="notFilledLabel">ยังไม่กรอก</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" data-i18n="yearLevelHeader">ชั้นปี</label>
+                <select id="filter-year" class="form-control" onchange="applyFilters()">
+                  <option value="" data-i18n="allYears">ทุกชั้นปี</option>
+                  <option value="pvc1" data-i18n="pvc1Label">ปวช. 1</option>
+                  <option value="pvc2" data-i18n="pvc2Label">ปวช. 2</option>
+                  <option value="pvc3" data-i18n="pvc3Label">ปวช. 3</option>
+                  <option value="pvs1" data-i18n="pvs1Label">ปวส. 1</option>
+                  <option value="pvs2" data-i18n="pvs2Label">ปวส. 2</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" data-i18n="classroomHeader">ห้องเรียน</label>
+                <select id="filter-classroom" class="form-control" onchange="applyFilters()">
+                  <option value="" data-i18n="allRooms">ทุกห้อง</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" data-i18n="genderHeader">เพศ</label>
+                <select id="filter-gender" class="form-control" onchange="applyFilters()">
+                  <option value="" data-i18n="allGenders">ทุกเพศ</option>
+                  <option value="male" data-i18n="male">ชาย</option>
+                  <option value="female" data-i18n="female">หญิง</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" data-i18n="nationalityHeader">สัญชาติ</label>
+                <select id="filter-nationality" class="form-control" onchange="applyFilters()">
+                  <option value="" data-i18n="allNationalities">ทุกสัญชาติ</option>
+                  <option value="ไทย" data-i18n="natThai">ไทย</option>
+                  <option value="เวียดนาม" data-i18n="natVietnamese">เวียดนาม</option>
+                  <option value="ลาว" data-i18n="natLao">ลาว</option>
+                  <option value="กัมพูชา" data-i18n="natCambodian">กัมพูชา</option>
+                  <option value="อื่นๆ" data-i18n="natOthers">อื่นๆ</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selection bar -->
+        <div id="selection-bar" class="sel-bar">
+          <span><span data-i18n="selectedLabel">เลือกแล้ว</span> <strong id="selected-count">0</strong> <span data-i18n="personPH">คน</span></span>
+          <button class="btn btn-sm btn-outline" onclick="sendToSelected()" data-i18n="sendNotification">ส่งการแจ้งเตือน</button>
+        </div>
+
+        <!-- Quick stats -->
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+          <span class="badge badge-gray" style="padding:5px 10px"><span data-i18n="totalStudents">ทั้งหมด</span> <strong id="student-count">-</strong> <span data-i18n="personPH">คน</span></span>
+          <span class="badge badge-green" style="padding:5px 10px"><span data-i18n="filledLabel">กรอกแล้ว</span> <strong id="stat-submitted">-</strong></span>
+          <span class="badge badge-gray" style="padding:5px 10px"><span data-i18n="notFilledLabel">ยังไม่กรอก</span> <strong id="stat-not-started">-</strong></span>
+          <button class="btn btn-sm btn-outline" onclick="sendToNotStarted()" style="margin-left:auto" data-i18n="notifyAllUnfilled">แจ้งเตือนทุกคนที่ยังไม่กรอก</button>
+        </div>
+
+        <!-- Table -->
+        <div class="card">
+          <div class="table-wrap">
+            <table style="table-layout:fixed;min-width:960px;font-size:0.9rem">
+              <colgroup>
+                <col style="width:44px">
+                <col style="width:220px">
+                <col style="width:130px">
+                <col style="width:90px">
+                <col style="width:75px">
+                <col style="width:95px">
+                <col style="width:110px">
+                <col style="width:196px">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th style="text-align:center"><input type="checkbox" onchange="selectAll(this.checked)" style="accent-color:var(--primary)"></th>
+                  <th data-i18n="fullNameCodeHeader">ชื่อ-นามสกุล / รหัส</th>
+                  <th style="text-align:center" data-i18n="classroomHeader">ห้องเรียน</th>
+                  <th style="text-align:center" data-i18n="yearLevelHeader">ชั้นปี</th>
+                  <th style="text-align:center" data-i18n="genderHeader">เพศ</th>
+                  <th style="text-align:center" data-i18n="nationalityHeader">สัญชาติ</th>
+                  <th style="text-align:center" data-i18n="statusHeader">สถานะ</th>
+                  <th data-i18n="actionsHeader">การดำเนินการ</th>
+                </tr>
+              </thead>
+              <tbody id="students-tbody">
+                <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-dim)" data-i18n="loading">กำลังโหลด...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW: CLASSROOMS -->
+    <div id="view-classrooms" class="view">
+      <div class="page-body">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+          <h2 style="font-size:1rem;font-weight:700;color:var(--text);white-space:nowrap;margin:0" data-i18n="myAdvisoryRoomsTitle">ห้องที่ปรึกษาของฉัน</h2>
+          <div class="search-wrap" style="flex:1;min-width:180px;max-width:300px">
+            <span class="search-ico">&#9906;</span>
+            <input type="text" id="room-search-input" class="form-control" data-i18n="roomSearchPH" placeholder="ค้นหาห้อง / รหัส / ชั้นปี..." oninput="renderClassroomCards()">
+          </div>
+          <select id="room-year-filter" class="form-control" style="width:110px;font-size:.82rem;margin-left:auto" onchange="renderClassroomCards()">
+            <option value="" data-i18n="allYears">ทุกชั้นปี</option>
+            <option value="pvc1" data-i18n="pvc1Label">ปวช.1</option>
+            <option value="pvc2" data-i18n="pvc2Label">ปวช.2</option>
+            <option value="pvc3" data-i18n="pvc3Label">ปวช.3</option>
+            <option value="pvs1" data-i18n="pvs1Label">ปวส.1</option>
+            <option value="pvs2" data-i18n="pvs2Label">ปวส.2</option>
+          </select>
+        </div>
+        <div id="classroom-cards" class="room-grid"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL: Notification -->
+<div class="modal-overlay" id="notif-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" data-i18n="sendNotification">ส่งการแจ้งเตือน</h3>
+      <button class="btn-icon icon-btn" onclick="closeModal('notif-modal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--primary-bg);border-radius:var(--radius-sm);padding:9px 13px;margin-bottom:14px;font-size:.82rem;color:var(--primary);font-weight:600" id="notif-recipient-info"></div>
+      <input type="hidden" id="notif-target-ids">
+      <input type="hidden" id="notif-classroom-id">
+      <div class="form-group">
+        <label class="form-label" data-i18n="notifTypeLabel">ประเภท</label>
+        <select id="notif-type-select" class="form-control">
+          <option value="reminder" data-i18n="notifReminder">เตือนความจำ</option>
+          <option value="info" data-i18n="notifInfo">ข้อมูลทั่วไป</option>
+          <option value="warning" data-i18n="notifWarning">คำเตือน</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label"><span data-i18n="notifTitleLabel">หัวเรื่อง</span> <span class="required">*</span></label>
+        <input type="text" id="notif-title-input" class="form-control" value="แจ้งเตือน: กรุณากรอกระเบียนสะสม">
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="notifMsgLabel">ข้อความ</label>
+        <textarea id="notif-message-input" class="form-control" rows="4">นักศึกษายังไม่ได้กรอกข้อมูลระเบียนสะสม กรุณากรอกให้ครบถ้วนและถูกต้องโดยเร็ว</textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('notif-modal')" data-i18n="cancel">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="submitNotification()" data-i18n="sendNotifBtnText">ส่งการแจ้งเตือน</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Add Advisory Room -->
+<div class="modal-overlay" id="add-room-modal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <h3 class="modal-title" data-i18n="selectAdvisoryRoomTitle">เลือกห้องที่ปรึกษา</h3>
+      <button class="icon-btn" onclick="closeModal('add-room-modal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label"><span data-i18n="selectRoom">ห้องเรียน</span> <span class="required">*</span></label>
+        <select id="new-room-select" class="form-control" style="font-size:.88rem">
+          <option value="" data-i18n="loadingRooms">-- กำลังโหลดห้องเรียน... --</option>
+        </select>
+      </div>
+      <div id="new-room-info" style="display:none;padding:10px 14px;background:var(--primary-bg);border-radius:var(--radius-sm);font-size:.82rem;margin-top:4px">
+        <div id="new-room-info-text"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('add-room-modal')" data-i18n="cancel">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="submitAddAdvisoryRoom()" data-i18n="addToAdvisoryBtn">เพิ่มห้องที่ปรึกษา</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Add Student to Room -->
+<div class="modal-overlay" id="add-student-modal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h3 class="modal-title" data-i18n="addStudentToRoomTitle">เพิ่มนักศึกษาในห้อง</h3>
+      <button class="icon-btn" onclick="closeModal('add-student-modal')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:var(--text-sub);margin:0 0 12px" data-i18n="addStudentHintText">ค้นหานักศึกษาที่แอดมินเพิ่มไว้ในระบบแล้ว เพื่อเพิ่มเข้าห้องที่ปรึกษา</p>
+      <div class="search-wrap" style="margin-bottom:10px">
+        <span class="search-ico">&#9906;</span>
+        <input type="text" id="add-std-search" class="form-control" data-i18n="typeToSearchText" placeholder="พิมพ์ชื่อหรือรหัสนักศึกษา..." oninput="clearTimeout(window._addStdTimer);window._addStdTimer=setTimeout(searchStudentsForRoom,350)">
+      </div>
+      <div id="add-std-results" style="min-height:100px;max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
+        <div style="text-align:center;padding:36px 20px;color:var(--text-dim);font-size:.83rem" data-i18n="typeToSearchText">พิมพ์ชื่อหรือรหัสเพื่อค้นหา</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('add-student-modal')" data-i18n="close">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- DOCUMENT VIEWER OVERLAY -->
+<div id="doc-viewer-overlay" style="display:none;position:fixed;inset:0;z-index:9000;background:#e5e7eb;overflow-y:auto">
+  <div id="doc-viewer-topbar" style="position:sticky;top:0;z-index:1;background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:var(--shadow-sm)">
+    <div>
+      <div id="doc-viewer-name" style="font-weight:700;font-size:.95rem"></div>
+      <div id="doc-viewer-sub" style="font-size:.75rem;color:var(--text-sub)"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary btn-sm" onclick="printDocViewer()">&#128438; <span data-i18n="printBtn">พิมพ์เอกสาร</span></button>
+      <button class="btn btn-secondary btn-sm" onclick="closeDocViewer()">&#10005; <span data-i18n="close">ปิด</span></button>
+    </div>
+  </div>
+  <div id="doc-viewer-pages" style="max-width:820px;margin:24px auto;padding:0 16px 40px"></div>
+</div>
+
+<div id="toast-container"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="assets/js/firebasedb.js"></script>
+<script src="assets/js/i18n.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/doc-renderer.js"></script>
+<script src="assets/js/teacher.js"></script>
+<script>
+  function sendToNotStarted() {
+    const ids = allStudents.filter(s => s.form_status === 'not_started').map(s => s.user_id);
+    if (!ids.length) { showToast(t('notifications'), t('everyoneFilled'), 'info'); return; }
+    document.getElementById('notif-recipient-info').textContent = `${t('notifSubtitle')}: ${ids.length} ${t('personPH')}`;
+    document.getElementById('notif-target-ids').value = ids.join(',');
+    document.getElementById('notif-classroom-id').value = '';
+    openModal('notif-modal');
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const session = getSession();
+    if (!session || (session.role !== 'teacher' && session.role !== 'admin')) {
+      window.location.href = 'index.html'; return;
+    }
+    initTeacher();
+  });
+</script>
+</body>
+</html>
