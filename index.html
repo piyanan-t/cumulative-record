@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบระเบียนสะสมออนไลน์ - เข้าสู่ระบบ</title>
-  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="icon" type="image/png" href="assets/img/logo.png">
+  <link rel="stylesheet" href="assets/css/styles.css?v=5">
 </head>
 <body>
   <div class="login-page">
@@ -19,7 +20,7 @@
 
     <div class="login-card">
       <div class="login-logo">
-        <div class="login-logo-icon">CBD</div>
+        <div class="login-logo-icon"><img src="assets/img/logo.png" alt="IRPC Technological College"></div>
         <h1 data-i18n="appName">ระบบระเบียนสะสมออนไลน์</h1>
         <p data-i18n="dept">แผนกวิชาคอมพิวเตอร์ธุรกิจดิจิทัล</p>
       </div>
@@ -47,27 +48,6 @@
         </button>
       </form>
 
-      <div class="divider" data-i18n="dividerTest">บัญชีสำหรับทดสอบ</div>
-
-      <div class="demo-panel">
-        <h4 data-i18n="testAccountsTitle">บัญชีทดสอบ (รหัสผ่าน: password)</h4>
-        <div class="demo-row">
-          <span class="demo-label">Admin</span>
-          <span class="demo-cred">admin001 / password</span>
-          <a class="demo-fill" href="javascript:void(0)" onclick="fillDemo('admin001','password')" data-i18n="fillBtn">กรอก</a>
-        </div>
-        <div class="demo-row">
-          <span class="demo-label" data-i18n="teacher">อาจารย์</span>
-          <span class="demo-cred">T001 / password</span>
-          <a class="demo-fill" href="javascript:void(0)" onclick="fillDemo('T001','password')" data-i18n="fillBtn">กรอก</a>
-        </div>
-        <div class="demo-row">
-          <span class="demo-label" data-i18n="student">นักศึกษา</span>
-          <span class="demo-cred">6701010001 / password</span>
-          <a class="demo-fill" href="javascript:void(0)" onclick="fillDemo('6701010001','password')" data-i18n="fillBtn">กรอก</a>
-        </div>
-      </div>
-
       <p style="text-align:center;margin-top:16px;font-size:.72rem;color:var(--text-dim)" data-i18n="loginIssueText">
         ปัญหาการเข้าสู่ระบบ? ติดต่อผู้ดูแลระบบ
       </p>
@@ -77,10 +57,12 @@
   <div id="toast-container"></div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="assets/js/firebasedb.js"></script>
-  <script src="assets/js/i18n.js"></script>
-  <script src="assets/js/app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+  <script src="assets/js/firebasedb.js?v=5"></script>
+  <script src="assets/js/i18n.js?v=5"></script>
+  <script src="assets/js/app.js?v=5"></script>
   <script>
     // @ts-nocheck
     async function handleLogin(e) {
@@ -120,9 +102,9 @@
     }
 
     function redirect(role) {
-      if (role === 'admin') window.location.href = 'admin.html';
-      else if (role === 'teacher') window.location.href = 'teacher.html';
-      else window.location.href = 'student.html';
+      if (role === 'admin') window.location.replace('admin.html');
+      else if (role === 'teacher') window.location.replace('teacher.html');
+      else window.location.replace('student.html');
     }
 
     function showError(msg) {
@@ -131,20 +113,19 @@
       el.style.display = 'block';
     }
 
-    function fillDemo(id, pass) {
-      document.getElementById('user_id').value = id;
-      document.getElementById('password').value = pass;
-    }
-
     function togglePass() {
       const inp = document.getElementById('password');
       inp.type = inp.type === 'password' ? 'text' : 'password';
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
+    function redirectIfLoggedIn() {
       const session = getSession();
       if (session?.role) redirect(session.role);
-    });
+    }
+    window.addEventListener('DOMContentLoaded', redirectIfLoggedIn);
+    // หน้าที่ถูกดึงกลับมาจาก bfcache ตอนกดปุ่มย้อนกลับจะไม่ยิง DOMContentLoaded ซ้ำ
+    // ต้องเช็ค session อีกครั้งตรงนี้ ไม่งั้นจะค้างอยู่ที่หน้า login เก่าทั้งที่ล็อกอินอยู่แล้ว
+    window.addEventListener('pageshow', e => { if (e.persisted) redirectIfLoggedIn(); });
   </script>
 </body>
 </html>

@@ -331,6 +331,8 @@ const TRANSLATIONS = {
     printBtn: 'พิมพ์',
     printDocBtn: 'พิมพ์เอกสาร',
     previewTitle: 'ตัวอย่างเอกสาร',
+    closeBtn: '← ปิด',
+    previewFabBtn: '👁 ดูตัวอย่างเอกสาร',
 
     // Student form labels
     studentCodeLabel: 'รหัสนักศึกษา',
@@ -509,9 +511,6 @@ const TRANSLATIONS = {
     importFirstNameHeader: 'ชื่อ',
     importLastNameHeader: 'นามสกุล',
     // Login extras
-    dividerTest: 'บัญชีสำหรับทดสอบ',
-    testAccountsTitle: 'บัญชีทดสอบ (รหัสผ่าน: password)',
-    fillBtn: 'กรอก',
     loginIssueText: 'ปัญหาการเข้าสู่ระบบ? ติดต่อผู้ดูแลระบบ',
 
     // Common UI
@@ -896,6 +895,8 @@ const TRANSLATIONS = {
     printBtn: 'Print',
     printDocBtn: 'Print Document',
     previewTitle: 'Document Preview',
+    closeBtn: '← Close',
+    previewFabBtn: '👁 View Document Preview',
 
     // Student form labels
     studentCodeLabel: 'Student Code',
@@ -1074,9 +1075,6 @@ const TRANSLATIONS = {
     importFirstNameHeader: 'First Name',
     importLastNameHeader: 'Last Name',
     // Login extras
-    dividerTest: 'Test Accounts',
-    testAccountsTitle: 'Test Accounts (Password: password)',
-    fillBtn: 'Fill',
     loginIssueText: 'Login issues? Contact Administrator',
 
     // Common UI

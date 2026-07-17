@@ -1,0 +1,8 @@
+{
+  "name": "migration-scripts",
+  "private": true,
+  "description": "One-time local scripts, never deployed",
+  "dependencies": {
+    "firebase-admin": "^12.6.0"
+  }
+}

@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบระเบียนสะสม - ผู้ดูแลระบบ</title>
-  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="icon" type="image/png" href="assets/img/logo.png">
+  <link rel="stylesheet" href="assets/css/styles.css?v=5">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -14,7 +15,7 @@
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <div class="brand-icon">CBD</div>
+      <div class="brand-icon"><img src="assets/img/logo.png" alt="IRPC Technological College"></div>
       <div class="brand-text">
         <h2 data-i18n="brandShort">ระเบียนสะสม</h2>
         <p data-i18n="adminSystemLabel">ผู้ดูแลระบบ</p>
@@ -159,7 +160,7 @@
             </div>
           </div>
           <div class="table-wrap">
-            <table>
+            <table class="responsive-table">
               <thead>
                 <tr>
                   <th id="select-all-th" style="width:36px;text-align:center;display:none"><input type="checkbox" id="select-all-users" title="เลือกทั้งหมด" onchange="toggleSelectAllUsers(this)" style="cursor:pointer;accent-color:var(--primary)"></th>
@@ -194,7 +195,7 @@
             </div>
           </div>
           <div class="table-wrap">
-            <table>
+            <table class="responsive-table">
               <thead>
                 <tr>
                   <th data-i18n="roomCodeCol">รหัสห้อง</th>
@@ -563,10 +564,12 @@
 
 <div id="toast-container"></div>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="assets/js/firebasedb.js"></script>
-<script src="assets/js/i18n.js"></script>
-<script src="assets/js/app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+<script src="assets/js/firebasedb.js?v=5"></script>
+<script src="assets/js/i18n.js?v=5"></script>
+<script src="assets/js/app.js?v=5"></script>
 <script>
 let adminClassrooms = [];
 let logOffset = 0;
@@ -576,7 +579,7 @@ function getYearBadge(yl) { const YEAR_LABEL=getYL(); const cls = (yl||'').start
 
 window.addEventListener('DOMContentLoaded', () => {
   const session = getSession();
-  if (!session || session.role !== 'admin') { window.location.href = 'index.html'; return; }
+  if (!session || session.role !== 'admin') { window.location.replace('index.html'); return; }
   document.getElementById('sidebar-name').textContent = session.full_name || 'Admin';
   const av = document.getElementById('sidebar-avatar');
   if (av) av.textContent = (session.full_name || 'A').charAt(0).toUpperCase();
@@ -673,17 +676,19 @@ function renderUsersTable(users) {
       : '<input type="checkbox" class="user-cb" value="' + u.user_id + '" onclick="onUserCbChange(this)" style="cursor:pointer;accent-color:var(--primary)">';
     return `
     <tr>
-      <td class="bulk-cb-cell" style="text-align:center;display:${cbDisplay}">${cbCell}</td>
-      <td><code style="font-size:.76rem">${u.user_id}</code></td>
-      <td><div style="font-weight:600">${u.full_name}</div>${u.student_code?`<div style="font-size:.72rem;color:var(--text-sub)">${u.student_code}</div>`:''}</td>
-      <td>${getRoleBadge(u.role)}</td>
-      <td style="font-size:.8rem">${u.role==='student'?(YEAR_LABEL[u.year_level]||'-'):u.role==='teacher'?translateDept(u.department):'-'}</td>
-      <td>${u.is_active?`<span class="badge badge-green">${t('activeStatus')}</span>`:`<span class="badge badge-red">${t('suspendedStatus')}</span>`}</td>
-      <td style="font-size:.76rem;color:var(--text-sub)">${u.last_login?timeAgo(u.last_login):t('neverLogged')}</td>
-      <td style="white-space:nowrap">
+      <td class="bulk-cb-cell td-check" style="text-align:center;display:${cbDisplay}">${cbCell}</td>
+      <td data-label="${t('userIdCol')}"><code style="font-size:.76rem">${u.user_id}</code></td>
+      <td class="td-name"><div style="font-weight:600">${u.full_name}</div>${u.student_code?`<div style="font-size:.72rem;color:var(--text-sub)">${u.student_code}</div>`:''}</td>
+      <td data-label="${t('roleCol')}">${getRoleBadge(u.role)}</td>
+      <td style="font-size:.8rem" data-label="${t('levelDeptCol')}">${u.role==='student'?(YEAR_LABEL[u.year_level]||'-'):u.role==='teacher'?translateDept(u.department):'-'}</td>
+      <td data-label="${t('statusHeader')}">${u.is_active?`<span class="badge badge-green">${t('activeStatus')}</span>`:`<span class="badge badge-red">${t('suspendedStatus')}</span>`}</td>
+      <td style="font-size:.76rem;color:var(--text-sub)" data-label="${t('lastLoginCol')}">${u.last_login?timeAgo(u.last_login):t('neverLogged')}</td>
+      <td class="td-actions" style="white-space:nowrap">
+        <div class="table-actions">
         <button class="btn btn-sm btn-secondary" onclick="openEditUserModal(${JSON.stringify(u).replace(/"/g,'&quot;')})">${t('edit')}</button>
-        <button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="deleteUser('${u.user_id}','${u.full_name}')">${u.is_active?t('suspendUser'):t('activateUser')}</button>
-        <button class="btn btn-sm" style="margin-left:4px;background:var(--danger-dark,#7f1d1d);color:#fff;border:none;cursor:pointer;border-radius:var(--radius-sm);padding:4px 10px;font-size:.78rem" onclick="removeUser('${u.user_id}','${u.full_name}')">${t('removeUserBtn')}</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteUser('${u.user_id}','${u.full_name}')">${u.is_active?t('suspendUser'):t('activateUser')}</button>
+        <button class="btn btn-sm" style="background:var(--danger-dark,#7f1d1d);color:#fff;border:none;cursor:pointer;border-radius:var(--radius-sm);padding:4px 10px;font-size:.78rem" onclick="removeUser('${u.user_id}','${u.full_name}')">${t('removeUserBtn')}</button>
+        </div>
       </td>
     </tr>
   `;
@@ -929,23 +934,25 @@ function renderClassroomsTable(classrooms) {
     const sub = c.submitted_count||0;
     const pct = total ? Math.round((sub/total)*100) : 0;
     return `<tr>
-      <td><code style="font-size:.76rem">${c.room_code}</code></td>
-      <td style="font-weight:600">${c.room_name}</td>
-      <td>${getYearBadge(c.year_level)}</td>
-      <td>${c.academic_year}</td>
-      <td>${total}</td>
-      <td>
+      <td data-label="${t('roomCodeCol')}"><code style="font-size:.76rem">${c.room_code}</code></td>
+      <td class="td-name" style="font-weight:600">${c.room_name}</td>
+      <td data-label="${t('yearLevelHeader')}">${getYearBadge(c.year_level)}</td>
+      <td data-label="${t('academicYearCol')}">${c.academic_year}</td>
+      <td data-label="${t('studentsCountCol')}">${total}</td>
+      <td data-label="${t('submittedCountCol')}">
         <div style="display:flex;align-items:center;gap:8px">
           <div class="progress" style="flex:1"><div class="progress-bar ${pct>=80?'green':''}" style="width:${pct}%"></div></div>
           <span style="font-size:.72rem;white-space:nowrap">${sub}/${total} (${pct}%)</span>
         </div>
       </td>
-      <td style="font-size:.8rem">${c.teachers||'-'}</td>
-      <td>${c.is_active?`<span class="badge badge-green">${t('openStatus')}</span>`:`<span class="badge badge-gray">${t('closedStatus')}</span>`}</td>
-      <td style="white-space:nowrap">
+      <td style="font-size:.8rem" data-label="${t('teacherCol')}">${c.teachers||'-'}</td>
+      <td data-label="${t('statusHeader')}">${c.is_active?`<span class="badge badge-green">${t('openStatus')}</span>`:`<span class="badge badge-gray">${t('closedStatus')}</span>`}</td>
+      <td class="td-actions" style="white-space:nowrap">
+        <div class="table-actions">
         <button class="btn btn-sm btn-secondary" onclick="openEditClassroomModal(${JSON.stringify(c).replace(/"/g,'&quot;')})">${t('edit')}</button>
-        <button class="btn btn-sm btn-primary" style="margin-left:4px" onclick="openAssignTeacherModal(${c.id})">${t('assignTeacherBtn')}</button>
-        <button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="deleteClassroom(${c.id},'${c.room_name}')">${t('removeUserBtn')}</button>
+        <button class="btn btn-sm btn-primary" onclick="openAssignTeacherModal(${c.id})">${t('assignTeacherBtn')}</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteClassroom(${c.id},'${c.room_name}')">${t('removeUserBtn')}</button>
+        </div>
       </td>
     </tr>`;
   }).join('');

@@ -12,7 +12,24 @@
       "PowerShell(Get-ChildItem \"C:\\\\\" -Directory | Where-Object { $_.Name -match \"xampp|wamp|laragon|php|apache\" })",
       "PowerShell(Get-ChildItem \"C:\\\\\", \"D:\\\\\", \"E:\\\\\" -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -match \"xampp|wamp|laragon|php\" })",
       "Bash(firebase deploy *)",
-      "Bash(firebase projects:list)"
+      "Bash(firebase projects:list)",
+      "Bash(python3 -c \"from PIL import Image; print\\('PIL OK'\\)\")",
+      "Bash(python -c \"from PIL import Image; print\\('PIL OK'\\)\")",
+      "Bash(magick -version)",
+      "Bash(convert -version)",
+      "Bash(npm -v)",
+      "Bash(mkdir -p \"/c/Users/acer/AppData/Local/Temp/claude/C--Users-acer-OneDrive-Desktop-Project-J/1da427d6-69f3-4565-8a06-9b678f09d501/scratchpad/imgwork\")",
+      "Read(//c/Users/acer/AppData/Local/Temp/claude/C--Users-acer-OneDrive-Desktop-Project-J/1da427d6-69f3-4565-8a06-9b678f09d501/scratchpad/**)",
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "Bash(curl -s \"https://cumulative-record.web.app/teacher.html\")",
+      "Bash(curl -sv \"https://cumulative-record.web.app/teacher.html\")",
+      "Bash(curl -sL \"https://cumulative-record.web.app/teacher\")",
+      "Bash(curl -sI \"https://cumulative-record.web.app/assets/img/logo.png\")",
+      "Bash(curl -s \"https://cumulative-record.web.app/assets/js/student.js\")",
+      "Bash(curl *)",
+      "Bash(grep -n \"min-width\\\\|width:[0-9]\\\\{2,\\\\}px\" student.html)",
+      "Bash(npx playwright *)"
     ]
   }
 }

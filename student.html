@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบระเบียนสะสม - นักศึกษา</title>
-  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="icon" type="image/png" href="assets/img/logo.png">
+  <link rel="stylesheet" href="assets/css/styles.css?v=5">
 </head>
 <body>
 <div class="app-layout">
@@ -12,7 +13,7 @@
   <!-- ======= SIDEBAR ======= -->
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <div class="brand-icon">CBD</div>
+      <div class="brand-icon"><img src="assets/img/logo.png" alt="IRPC Technological College"></div>
       <div class="brand-text">
         <h2 data-i18n="brandShort">ระเบียนสะสม</h2>
         <p data-i18n="deptShort">คอมพิวเตอร์ธุรกิจดิจิทัล</p>
@@ -101,7 +102,7 @@
         </div>
         <div class="form-actions">
           <div style="display:flex;align-items:center;gap:8px">
-            <span id="autosave-indicator" style="font-size:11px;color:var(--text-sub)"></span>
+            <span id="autosave-indicator" style="font-size:12.5px;color:var(--text-sub)"></span>
             <button class="btn btn-success btn-sm" id="submit-btn" onclick="submitForm()" data-i18n="submitForm">ส่งเอกสาร</button>
             <button class="btn btn-outline btn-sm no-print" onclick="printDocument()" data-i18n="printPdf">พิมพ์ / PDF</button>
           </div>
@@ -144,8 +145,8 @@
                     <span class="btn btn-outline btn-sm" style="pointer-events:none" data-i18n="selectPhoto">เลือกรูป</span>
                     <input type="file" accept="image/*" style="display:none" onchange="handlePhotoUpload(this)">
                   </label>
-                  <span id="photo-filename" style="font-size:12px;color:var(--text-sub)" data-i18n="noPhotoText">ยังไม่ได้เลือกรูป</span>
-                  <button type="button" class="btn btn-sm" style="color:#dc2626;background:none;border:1px solid #dc2626;padding:2px 8px;font-size:11px;display:none" id="photo-clear-btn" onclick="clearStudentPhoto()" data-i18n="deletePhoto">ลบรูป</button>
+                  <span id="photo-filename" style="font-size:13.5px;color:var(--text-sub)" data-i18n="noPhotoText">ยังไม่ได้เลือกรูป</span>
+                  <button type="button" class="btn btn-sm" style="color:#dc2626;background:none;border:1px solid #dc2626;padding:2px 8px;font-size:12.5px;display:none" id="photo-clear-btn" onclick="clearStudentPhoto()" data-i18n="deletePhoto">ลบรูป</button>
                 </div>
                 <div id="photo-preview-thumb" style="margin-top:8px;display:none">
                   <img id="photo-thumb-img" style="width:72px;height:100px;object-fit:cover;border:1px solid #ccc;border-radius:2px" alt="รูปตัวอย่าง">
@@ -467,8 +468,8 @@
                     <span class="btn btn-outline btn-sm" style="pointer-events:none" data-i18n="selectMapPhoto">เลือกรูปแผนที่</span>
                     <input type="file" accept="image/*" style="display:none" onchange="handleMapUpload(this)">
                   </label>
-                  <span id="map-filename" style="font-size:12px;color:var(--text-sub)" data-i18n="noPhotoText">ยังไม่ได้เลือกรูป</span>
-                  <button type="button" class="btn btn-sm" style="color:#dc2626;background:none;border:1px solid #dc2626;padding:2px 8px;font-size:11px;display:none" id="map-clear-btn" onclick="clearMapPhoto()" data-i18n="deletePhoto">ลบรูป</button>
+                  <span id="map-filename" style="font-size:13.5px;color:var(--text-sub)" data-i18n="noPhotoText">ยังไม่ได้เลือกรูป</span>
+                  <button type="button" class="btn btn-sm" style="color:#dc2626;background:none;border:1px solid #dc2626;padding:2px 8px;font-size:12.5px;display:none" id="map-clear-btn" onclick="clearMapPhoto()" data-i18n="deletePhoto">ลบรูป</button>
                 </div>
                 <div id="map-preview-thumb" style="margin-top:10px;display:none">
                   <img id="map-thumb-img" style="max-width:100%;max-height:200px;border:1px solid #ccc;border-radius:4px" alt="แผนที่">
@@ -485,8 +486,9 @@
         </div><!-- /split-left -->
 
         <!-- RIGHT: Preview -->
-        <div class="split-right">
+        <div class="split-right" id="split-right">
           <div class="preview-head">
+            <button class="btn btn-sm btn-secondary mobile-preview-close no-print" onclick="closePreviewOverlay()" data-i18n="closeBtn">← ปิด</button>
             <h3 data-i18n="previewTitle">ตัวอย่างเอกสาร</h3>
             <button class="btn btn-sm btn-secondary no-print" onclick="printDocument()" data-i18n="printBtn">พิมพ์</button>
           </div>
@@ -494,6 +496,11 @@
         </div>
 
       </div><!-- /split-view -->
+
+      <!-- Mobile/Tablet: floating button to open document preview as overlay -->
+      <button type="button" class="mobile-preview-fab no-print" onclick="openPreviewOverlay()" data-i18n="previewFabBtn">
+        👁 ดูตัวอย่างเอกสาร
+      </button>
     </div><!-- /view-form -->
 
     <!-- VIEW: NOTIFICATIONS -->
@@ -517,12 +524,14 @@
 <div id="toast-container"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="assets/js/firebasedb.js"></script>
-<script src="assets/js/i18n.js"></script>
-<script src="assets/js/app.js"></script>
-<script src="assets/js/doc-renderer.js"></script>
-<script src="assets/js/student.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+<script src="assets/js/firebasedb.js?v=5"></script>
+<script src="assets/js/i18n.js?v=5"></script>
+<script src="assets/js/app.js?v=5"></script>
+<script src="assets/js/doc-renderer.js?v=5"></script>
+<script src="assets/js/student.js?v=5"></script>
 <script>
   window.addEventListener('DOMContentLoaded', () => {
     const session = getSession();

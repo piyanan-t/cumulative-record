@@ -90,7 +90,7 @@ function setDocPhotoType(type) {
 async function initStudent() {
   const session = getSession();
   if (!session || (session.role !== 'student' && session.role !== 'admin')) {
-    window.location.href = 'index.html';
+    window.location.replace('index.html');
     return;
   }
   document.getElementById('sidebar-name').textContent = session.full_name || '';
@@ -239,17 +239,32 @@ function renderFriendsTable() {
   friendsData.forEach(f => addFriendRow(f.friend_name, f.friend_school, f.friend_phone));
 }
 
+const MAX_FRIENDS = 8;
+
 function addFriendRow(name='', school='', phone='') {
   const tbody = document.getElementById('friends-tbody');
   if (!tbody) return;
+  if (tbody.children.length >= MAX_FRIENDS) {
+    alert(`เพิ่มรายชื่อเพื่อนสนิทได้สูงสุด ${MAX_FRIENDS} คน`);
+    updateAddFriendButtonState();
+    return;
+  }
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td><input type="text" name="friend_name[]" value="${name}" placeholder="ชื่อ-นามสกุล" oninput="triggerPreview()"></td>
     <td><input type="text" name="friend_school[]" value="${school}" placeholder="โรงเรียน/ชั้น/ห้อง" oninput="triggerPreview()"></td>
     <td><input type="text" name="friend_phone[]" value="${phone}" placeholder="ที่อยู่/เบอร์โทร" oninput="triggerPreview()"></td>
-    <td><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove();triggerPreview()">&#x2715;</button></td>
+    <td><button type="button" class="btn btn-sm btn-danger" onclick="this.closest('tr').remove();updateAddFriendButtonState();triggerPreview()">&#x2715;</button></td>
   `;
   tbody.appendChild(tr);
+  updateAddFriendButtonState();
+}
+
+function updateAddFriendButtonState() {
+  const tbody = document.getElementById('friends-tbody');
+  const btn = document.querySelector('[onclick="addFriendRow()"]');
+  if (!tbody || !btn) return;
+  btn.disabled = tbody.children.length >= MAX_FRIENDS;
 }
 
 function getFriendsData() {
@@ -408,6 +423,26 @@ function updatePreview(page) {
   const renderers = [null, renderDocPage1, renderDocPage2, renderDocPage3, renderDocPage4];
   container.innerHTML = renderers[page] ? renderers[page](d) : '';
 }
+
+// ── Mobile/Tablet Preview Overlay ──────────────────────────────
+function openPreviewOverlay() {
+  const panel = document.getElementById('split-right');
+  if (!panel) return;
+  updatePreview(currentPage);
+  panel.classList.add('mobile-overlay-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closePreviewOverlay() {
+  const panel = document.getElementById('split-right');
+  if (!panel) return;
+  panel.classList.remove('mobile-overlay-open');
+  document.body.style.overflow = '';
+}
+
+window.matchMedia('(min-width:961px)').addEventListener('change', e => {
+  if (e.matches) closePreviewOverlay();
+});
 
 // ── Notifications ─────────────────────────────────────────────
 async function loadNotifications() {

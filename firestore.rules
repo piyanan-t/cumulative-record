@@ -1,10 +1,70 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow all reads/writes for development
-    // TODO: tighten before production
+
+    function signedIn() { return request.auth != null; }
+    function role()      { return request.auth.token.role; }
+    // ชื่อ claim ห้ามใช้ "user_id" เพราะ Firebase สงวนชื่อนี้ไว้เท่ากับ uid เสมอ (ถูกเขียนทับตอนออก
+    // token จริง ต่อให้ตั้ง custom claim ชื่อนี้ไว้ก็ตาม) จึงใช้ "login_id" แทน
+    function myUserId()  { return request.auth.token.login_id; }
+    function isAdmin()   { return signedIn() && role() == 'admin'; }
+    function isTeacher() { return signedIn() && role() == 'teacher'; }
+
+    // บัญชีผู้ใช้ (รหัสผ่านจริงย้ายไป Firebase Auth แล้ว ไม่ได้เก็บใน Firestore อีกต่อไป) —
+    // อาจารย์อ่านได้ด้วยเพราะหน้าจัดการห้อง/ค้นหานักศึกษาต้อง join ชื่อจากคอลเลกชันนี้แบบไม่จำกัด
+    // ห้อง (fAll('users')) อยู่หลายจุด, เขียนได้เฉพาะแอดมิน/Cloud Functions (ใช้ Admin SDK ข้าม
+    // rules เหล่านี้เสมออยู่แล้ว)
+    match /users/{userId} {
+      allow read:  if isAdmin() || isTeacher() || (signedIn() && myUserId() == userId);
+      allow write: if isAdmin();
+    }
+
+    // ระเบียนสะสมของนักศึกษา — เจ้าของอ่าน/เขียนของตัวเองได้ (กรอกฟอร์ม), แอดมินทำได้ทุกอย่าง,
+    // อาจารย์อ่าน/เขียนได้ (ดูเอกสารนักศึกษา + ย้ายเข้าห้องที่ปรึกษา) — ยังไม่จำกัดเฉพาะห้องที่ตัวเอง
+    // ดูแล เพราะหน้าจัดการของอาจารย์ปัจจุบันดึงข้อมูลทั้งคอลเลกชันมากรองฝั่ง client (ต้องแก้เป็น query
+    // แบบ where ก่อนถึงจะจำกัดสิทธิ์ระดับห้องเรียนได้จริงใน rules — ทำเป็นงานถัดไปได้หากต้องการเข้มกว่านี้)
+    match /profiles/{userId} {
+      allow read, write: if isAdmin() || isTeacher() || (signedIn() && myUserId() == userId);
+    }
+
+    // ห้องเรียน + การมอบหมายอาจารย์ที่ปรึกษา — อ่านได้ทุกคนที่ login แล้ว, เขียนได้อาจารย์/แอดมิน
+    match /classrooms/{roomId} {
+      allow read:  if signedIn();
+      allow write: if isAdmin() || isTeacher();
+    }
+    match /tc/{docId} {
+      allow read:  if signedIn();
+      allow write: if isAdmin() || isTeacher();
+    }
+
+    // แจ้งเตือน — ผู้รับอ่าน/แก้ (mark as read) ของตัวเองได้, แอดมินทำได้ทุกอย่าง,
+    // สร้างได้ทั้งอาจารย์/แอดมิน (ผู้ส่ง)
+    match /notifs/{notifId} {
+      allow read, update: if isAdmin() || (signedIn() && myUserId() == resource.data.recipient_id);
+      allow create:        if isAdmin() || isTeacher();
+      allow delete:         if isAdmin();
+    }
+
+    // Log กิจกรรม — สร้างได้ทุกคนที่ login แล้ว (ทุก role มีการบันทึก log ตอน login/ทำรายการ),
+    // อ่านได้เฉพาะแอดมิน (มีข้อมูลกิจกรรมของทุกคน)
+    match /logs/{logId} {
+      allow create: if signedIn();
+      allow read:   if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // ตั้งค่าระบบ + ตัวนับลำดับ (ใช้ตอนสร้างห้องเรียนใหม่ ทั้งแอดมินและอาจารย์เรียกได้)
+    match /settings/{docId} {
+      allow read, write: if isAdmin();
+    }
+    match /meta/{docId} {
+      allow read: if signedIn();
+      allow write: if isAdmin() || isTeacher();
+    }
+
+    // ปิดทุกอย่างที่ไม่เข้าเงื่อนไขข้างต้นโดยชัดเจน
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

@@ -52,7 +52,7 @@ function renderDocPage1(d, opts={}) {
     <span class="doc-page-num">1</span>
 
     <div class="doc-header">
-      <img src="ระเบียนสะสม/images.png" alt="โลโก้วิทยาลัย" class="doc-logo-img">
+      <img src="assets/img/logo.png" alt="โลโก้วิทยาลัย" class="doc-logo-img">
       <div class="doc-title">ระเบียนสะสม</div>
       <div class="doc-id-label">เลขประจำตัวประชาชน</div>
       <div class="id-boxes">

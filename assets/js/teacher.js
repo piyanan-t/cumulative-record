@@ -14,7 +14,7 @@ let currentRoom = null;
 async function initTeacher() {
   const session = getSession();
   if (!session || (session.role !== 'teacher' && session.role !== 'admin')) {
-    window.location.href = 'index.html';
+    window.location.replace('index.html');
     return;
   }
 
@@ -200,17 +200,17 @@ function renderStudentTable(students) {
     const safeName = name.replace(/'/g, "\\'");
     return `
     <tr>
-      <td style="text-align:center"><input type="checkbox" class="student-checkbox" value="${s.user_id}" onchange="toggleStudentSelect('${s.user_id}', this.checked)" style="accent-color:var(--primary)"></td>
-      <td style="overflow:visible">
+      <td style="text-align:center" class="td-check"><input type="checkbox" class="student-checkbox" value="${s.user_id}" onchange="toggleStudentSelect('${s.user_id}', this.checked)" style="accent-color:var(--primary)"></td>
+      <td style="overflow:visible" class="td-name">
         <span style="display:block;font-weight:600;margin:0;padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:192px">${name}</span>
         <span style="display:block;font-size:0.78rem;color:var(--text-muted);margin:0;padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:192px">${s.student_code || '-'}</span>
       </td>
-      <td style="text-align:center">${s.room_name || '-'}</td>
-      <td style="text-align:center">${getYearBadge(s.year_level)}</td>
-      <td style="text-align:center">${getGenderText(s)}</td>
-      <td style="text-align:center">${s.nationality || '-'}</td>
-      <td style="text-align:center">${getStatusBadge(s.form_status)}</td>
-      <td>
+      <td style="text-align:center" data-label="${t('classroomHeader')}">${s.room_name || '-'}</td>
+      <td style="text-align:center" data-label="${t('yearLevelHeader')}">${getYearBadge(s.year_level)}</td>
+      <td style="text-align:center" data-label="${t('genderHeader')}">${getGenderText(s)}</td>
+      <td style="text-align:center" data-label="${t('nationalityHeader')}">${s.nationality || '-'}</td>
+      <td style="text-align:center" data-label="${t('statusHeader')}">${getStatusBadge(s.form_status)}</td>
+      <td class="td-actions">
         <div class="table-actions">
           <button class="btn btn-sm btn-primary" onclick="viewStudent('${s.user_id}')">${t('viewDoc')}</button>
           ${s.form_status === 'not_started' ? `<button class="btn btn-sm btn-outline" onclick="sendToStudent('${s.user_id}','${safeName}')">${t('notifyBtn')}</button>` : ''}
@@ -270,11 +270,11 @@ function renderRoomTable(students) {
     const name = `${s.prefix||''}${s.first_name_th||''} ${s.last_name_th||''}`;
     const safeName = name.replace(/'/g, "\\'");
     return `<tr>
-      <td><div style="font-weight:600">${name}</div></td>
-      <td style="font-size:.8rem;color:var(--text-sub)">${s.student_code||'-'}</td>
-      <td>${getGenderText(s)}</td>
-      <td>${getStatusBadge(s.form_status)}</td>
-      <td>
+      <td class="td-name"><div style="font-weight:600">${name}</div></td>
+      <td style="font-size:.8rem;color:var(--text-sub)" data-label="${t('studentCodeHeader')}">${s.student_code||'-'}</td>
+      <td data-label="${t('genderHeader')}">${getGenderText(s)}</td>
+      <td data-label="${t('statusHeader')}">${getStatusBadge(s.form_status)}</td>
+      <td class="td-actions">
         <div class="table-actions" style="justify-content:center">
           <button class="btn btn-sm btn-primary" onclick="viewStudent('${s.user_id}')">${t('viewDoc')}</button>
           ${s.form_status==='not_started'?`<button class="btn btn-sm btn-outline" onclick="sendToStudent('${s.user_id}','${safeName}')">${t('notifyBtn')}</button>`:''}

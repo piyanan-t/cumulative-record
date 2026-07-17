@@ -1,7 +1,8 @@
 // ════════════════════════════════════════════════════════════════
 // firebasedb.js  –  Firebase Firestore fetch interceptor
 // แทนที่ localdb.js โดยใช้ Firestore แทน localStorage
-// โหลดหลังจาก firebase-app-compat.js และ firebase-firestore-compat.js
+// โหลดหลังจาก firebase-app-compat.js, firebase-auth-compat.js,
+// firebase-firestore-compat.js และ firebase-functions-compat.js
 // ════════════════════════════════════════════════════════════════
 (function () {
   'use strict';
@@ -16,7 +17,17 @@
   };
 
   if (!firebase.apps.length) firebase.initializeApp(CFG);
-  const fdb = firebase.firestore();
+  const fdb   = firebase.firestore();
+  const fauth = firebase.auth();
+  const ffns  = firebase.app().functions('asia-southeast1');
+  // เก็บ session ต่อแท็บเท่านั้น (ปิดแท็บ = ออกจากระบบ) ให้ตรงกับพฤติกรรมเดิมของแอปที่ใช้ sessionStorage
+  fauth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(() => {});
+
+  // ต้องตรงกับ syntheticEmail() ใน functions/index.js และ scripts/migrate-users-to-auth.js
+  const AUTH_EMAIL_DOMAIN = 'cumulative-record.local';
+  function syntheticEmail(userId) {
+    return `${String(userId).trim().toLowerCase()}@${AUTH_EMAIL_DOMAIN}`;
+  }
 
   // ── Helpers ──────────────────────────────────────────────────────
   function mkRes(data, status) {
@@ -31,15 +42,6 @@
 
   function getSession() {
     try { return JSON.parse(sessionStorage.getItem('user_session')); } catch { return null; }
-  }
-
-  function verifyPass(plain, stored) {
-    if (!stored) return false;
-    if (stored.startsWith('$2') && typeof bcrypt !== 'undefined') return bcrypt.compareSync(plain, stored);
-    return plain === stored;
-  }
-  function hashPass(plain) {
-    return (typeof bcrypt !== 'undefined') ? bcrypt.hashSync(plain, 10) : plain;
   }
 
   // ── Firestore wrappers ───────────────────────────────────────────
@@ -58,21 +60,6 @@
   async function fUpdate(col, id, data) { await fdb.collection(col).doc(String(id)).update(data); }
   async function fDel(col, id)          { await fdb.collection(col).doc(String(id)).delete(); }
   async function fAdd(col, data)        { const r = await fdb.collection(col).add(data); return r.id; }
-
-  // อ่านหลายเอกสารด้วย id พร้อมกันเป็นชุด (where documentId in [...]) แทนการ fGet ทีละตัวในลูป
-  // Firestore บิล read เฉพาะเอกสารที่ "มีอยู่จริง" เท่านั้น จึงประหยัดกว่า fGet ทีละ id มาก
-  // เมื่อส่วนใหญ่เป็น id ใหม่ที่ยังไม่มีในระบบ (เช่นตอนนำเข้ารายชื่อ)
-  async function fWhereIn(col, ids) {
-    const uniq = [...new Set(ids)].filter(Boolean);
-    if (!uniq.length) return [];
-    const CHUNK = 10; // ขีดจำกัดของ Firestore 'in' query
-    const chunks = [];
-    for (let i = 0; i < uniq.length; i += CHUNK) chunks.push(uniq.slice(i, i + CHUNK));
-    const snaps = await Promise.all(chunks.map(chunk =>
-      fdb.collection(col).where(firebase.firestore.FieldPath.documentId(), 'in', chunk).get()
-    ));
-    return snaps.flatMap(s => s.docs.map(d => ({ _id: d.id, ...d.data() })));
-  }
 
   // อ่านเฉพาะ N เอกสารล่าสุดตามลำดับฟิลด์ แทนการ fAll ทั้งคอลเลกชันแล้วมาเรียง/ตัดในเครื่อง
   async function fRecent(col, orderField, dir, lim) {
@@ -158,22 +145,36 @@
   async function doLogin(body) {
     const { user_id, password } = body;
     if (!user_id || !password) return fail('กรุณากรอกข้อมูล');
-    const u = await fGet('users', user_id);
-    if (!u || !u.is_active) return fail('รหัสผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-    if (!verifyPass(password, u.password)) return fail('รหัสผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-    fUpdate('users', user_id, { last_login: now() });
-    logAct(user_id, 'login', 'เข้าสู่ระบบสำเร็จ');
+
+    // ล็อกอินด้วยอีเมลสังเคราะห์ (lowercase เสมอ) แต่ user_id จริงอาจมีตัวพิมพ์ใหญ่-เล็กปนกัน
+    // (เช่น "Teach001") ต้องใช้ user_id ตามที่บันทึกไว้ตอนสร้างบัญชี (จาก custom claims หลัง
+    // ยืนยันตัวตนสำเร็จ) ไม่ใช่ตามที่พิมพ์ในฟอร์ม ไม่งั้น fGet('users', ...) จะหา doc ไม่เจอ
+    // เพราะ Firestore doc id เทียบตัวพิมพ์ใหญ่-เล็กตรงตัว — claim ชื่อ "login_id" ไม่ใช่ "user_id"
+    // เพราะ "user_id" เป็นชื่อที่ Firebase สงวนไว้เท่ากับ uid เสมอ (ถูกเขียนทับตอนออก token จริง)
+    let canonicalUserId;
+    try {
+      const cred = await fauth.signInWithEmailAndPassword(syntheticEmail(user_id), password);
+      const tokenResult = await cred.user.getIdTokenResult();
+      canonicalUserId = tokenResult.claims.login_id || user_id;
+    } catch (e) {
+      return fail('รหัสผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+    }
+
+    const u = await fGet('users', canonicalUserId);
+    if (!u || !u.is_active) { await fauth.signOut(); return fail('รหัสผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'); }
+    fUpdate('users', canonicalUserId, { last_login: now() });
+    logAct(canonicalUserId, 'login', 'เข้าสู่ระบบสำเร็จ');
 
     let extra = {};
     if (u.role === 'teacher') {
-      const tc    = await fAll('tc', [['teacher_id','==',user_id]]);
+      const tc    = await fAll('tc', [['teacher_id','==',canonicalUserId]]);
       const rooms = await fAll('classrooms');
       const cids  = tc.map(t => t.classroom_id);
       extra.classrooms        = rooms.filter(r => cids.includes(r.id));
       extra.teacher_classrooms = cids;
     }
     if (u.role === 'student') {
-      const p = await fGet('profiles', user_id);
+      const p = await fGet('profiles', canonicalUserId);
       if (p) {
         const rooms = await fAll('classrooms');
         const room  = rooms.find(r => r.id === p.classroom_id);
@@ -233,35 +234,6 @@
     return ok({ data, total:data.length });
   }
 
-  async function doCreateUser(body, session) {
-    if (!body.user_id || !body.full_name) return fail('กรุณากรอกข้อมูลที่จำเป็น');
-    if (!body.password) return fail('กรุณากรอกรหัสผ่าน');
-    const existing = await fGet('users', body.user_id);
-    if (existing) return fail('รหัสผู้ใช้นี้มีอยู่แล้ว');
-    const u = { user_id:body.user_id, password:hashPass(body.password), role:body.role||'student', full_name:body.full_name, email:body.email||'', department:body.department||'', is_active:body.is_active!==undefined?Number(body.is_active):1, created_at:now(), last_login:null };
-    await fSet('users', body.user_id, u);
-    if (u.role === 'student') {
-      const parts = u.full_name.replace(/นาย|นางสาว|นาง/g,'').trim().split(/\s+/);
-      await fSet('profiles', body.user_id, { user_id:body.user_id, student_code:body.student_code||body.user_id, classroom_id:null, year_level:body.year_level||'pvc1', prefix:body.prefix||(u.full_name.startsWith('นางสาว')?'นางสาว':u.full_name.startsWith('นาง')?'นาง':'นาย'), first_name_th:body.first_name_th||parts[0]||'', last_name_th:body.last_name_th||parts.slice(1).join(' ')||'', gender:body.gender||'', nationality:'', form_status:'not_started', form_submitted_at:null, friends:[], health_checkups:[] });
-    }
-    logAct(session?.user_id, 'create_user', `สร้างผู้ใช้ ${body.user_id}`);
-    return ok({ message:'สร้างผู้ใช้สำเร็จ' });
-  }
-
-  async function doUpdateUser(body, session) {
-    const u = await fGet('users', body.user_id);
-    if (!u) return fail('ไม่พบผู้ใช้');
-    const updates = { full_name:body.full_name??u.full_name, role:body.role??u.role, department:body.department??u.department, is_active:body.is_active!==undefined?Number(body.is_active):u.is_active };
-    if (body.password) updates.password = hashPass(body.password);
-    await fUpdate('users', body.user_id, updates);
-    if (body.year_level !== undefined) {
-      const p = await fGet('profiles', body.user_id);
-      if (p) await fUpdate('profiles', body.user_id, { year_level:body.year_level });
-    }
-    logAct(session?.user_id, 'update_user', `แก้ไขผู้ใช้ ${body.user_id}`);
-    return ok({ message:'แก้ไขผู้ใช้สำเร็จ' });
-  }
-
   async function doDeleteUser(body, session) {
     const u = await fGet('users', body.user_id);
     if (!u) return fail('ไม่พบผู้ใช้');
@@ -270,42 +242,6 @@
     const msg = newActive ? 'เปิดใช้งานบัญชีสำเร็จ' : 'ระงับผู้ใช้สำเร็จ';
     logAct(session?.user_id, 'delete_user', msg + ' ' + body.user_id);
     return ok({ message:msg });
-  }
-
-  async function doRemoveUser(body, session) {
-    if (!body.user_id) return fail('ไม่พบ user_id');
-    const u = await fGet('users', body.user_id);
-    if (!u) return fail('ไม่พบผู้ใช้');
-    const batch = fdb.batch();
-    batch.delete(fdb.collection('users').doc(body.user_id));
-    batch.delete(fdb.collection('profiles').doc(body.user_id));
-    await batch.commit();
-    const tc = await fAll('tc', [['teacher_id','==',body.user_id]]);
-    await Promise.all(tc.map(t => fDel('tc', t._id)));
-    logAct(session?.user_id, 'remove_user', `ลบผู้ใช้ ${body.user_id} ถาวร`);
-    return ok({ message:'ลบผู้ใช้ออกจากระบบสำเร็จ' });
-  }
-
-  async function doBulkRemoveUsers(body, session) {
-    const ids = (body.user_ids || []).filter(id => id !== session?.user_id);
-    if (!ids.length) return fail('ไม่มีรายการที่เลือก');
-    const CHUNK = 250; // 2 deletes/คน → สูงสุด 500 ops ต่อ batch ตามข้อจำกัดของ Firestore
-    let deleted = 0;
-    for (let i = 0; i < ids.length; i += CHUNK) {
-      const chunk = ids.slice(i, i + CHUNK);
-      const batch = fdb.batch();
-      chunk.forEach(uid => {
-        batch.delete(fdb.collection('users').doc(uid));
-        batch.delete(fdb.collection('profiles').doc(uid));
-      });
-      await batch.commit();
-      deleted += chunk.length;
-    }
-    const allTc = await fAll('tc');
-    const toRemoveTc = allTc.filter(t => ids.includes(t.teacher_id));
-    await Promise.all(toRemoveTc.map(t => fDel('tc', t._id)));
-    logAct(session?.user_id, 'bulk_remove_users', `ลบผู้ใช้จำนวน ${deleted} คน`);
-    return ok({ message:`ลบสำเร็จ ${deleted} คน` });
   }
 
   // ── Admin: Classrooms ─────────────────────────────────────────
@@ -410,65 +346,6 @@
       return { รหัสนักศึกษา:p.student_code, ชื่อ:p.first_name_th, นามสกุล:p.last_name_th, ห้องเรียน:r?.room_name||'', สถานะ:p.form_status, จังหวัด:p.province||'' };
     });
     return ok({ data });
-  }
-
-  async function doImportStudents(body, session) {
-    const students = body.students || [];
-    const cid = body.classroom_id ? Number(body.classroom_id) : null;
-    const yl  = body.year_level || 'pvc1';
-    const results = { success:0, failed:0, errors:[] };
-
-    // เช็ครหัสซ้ำทั้งชุดในครั้งเดียวด้วย fWhereIn แทนการ fGet ทีละคนในลูป (อ่านเฉพาะที่ซ้ำจริง)
-    const codes = students.map(s => String(s.student_code||'').trim());
-    const existingSet = new Set((await fWhereIn('users', codes)).map(u => u._id));
-
-    let batch = fdb.batch();
-    let batchOps = 0;
-    const BATCH_LIMIT = 250; // 2 writes/คน → สูงสุด 500 ops ต่อ batch ตามข้อจำกัดของ Firestore
-    for (let i = 0; i < students.length; i++) {
-      const s = students[i];
-      const code = codes[i];
-      if (!code) { results.failed++; continue; }
-      if (existingSet.has(code)) { results.failed++; results.errors.push(`รหัส ${code} มีอยู่แล้ว`); continue; }
-      const prefix = s.prefix || '';
-      const fn = s.first_name_th || '';
-      const ln = s.last_name_th  || '';
-      const gender = s.gender || (['นางสาว','นาง'].includes(prefix)?'female':(prefix==='นาย'?'male':''));
-      batch.set(fdb.collection('users').doc(code), { user_id:code, password:'irpct1234!', role:'student', full_name:(prefix+fn+' '+ln).trim(), is_active:1, created_at:now(), last_login:null });
-      batch.set(fdb.collection('profiles').doc(code), { user_id:code, student_code:code, classroom_id:cid, year_level:yl, prefix, first_name_th:fn, last_name_th:ln, gender, nationality:'', form_status:'not_started', form_submitted_at:null, friends:[], health_checkups:[] });
-      existingSet.add(code); // กันรหัสซ้ำกันเองภายในไฟล์ที่นำเข้า
-      results.success++;
-      if (++batchOps >= BATCH_LIMIT) { await batch.commit(); batch = fdb.batch(); batchOps = 0; }
-    }
-    if (batchOps > 0) await batch.commit();
-    logAct(session?.user_id, 'import_students', `นำเข้า ${results.success} คน`);
-    return ok({ results, message:`นำเข้าสำเร็จ ${results.success} คน${results.failed?`, ล้มเหลว ${results.failed} คน`:''}` });
-  }
-
-  async function doImportTeachers(body, session) {
-    const teachers = body.teachers || [];
-    const results = { success:0, failed:0, errors:[] };
-
-    const uids = teachers.map(t => String(t.user_id||'').trim());
-    const existingSet = new Set((await fWhereIn('users', uids)).map(u => u._id));
-
-    let batch = fdb.batch();
-    let batchOps = 0;
-    const BATCH_LIMIT = 450; // 1 write/คน
-    for (let i = 0; i < teachers.length; i++) {
-      const t = teachers[i];
-      const uid = uids[i];
-      if (!uid) { results.failed++; continue; }
-      if (existingSet.has(uid)) { results.failed++; results.errors.push(`รหัส ${uid} มีอยู่แล้ว`); continue; }
-      const prefix = t.prefix||'อ.'; const fn = t.first_name||''; const ln = t.last_name||'';
-      batch.set(fdb.collection('users').doc(uid), { user_id:uid, password:t.password||'teacher@1234', role:'teacher', full_name:(prefix+fn+' '+ln).trim(), department:t.department||'', is_active:1, created_at:now(), last_login:null });
-      existingSet.add(uid);
-      results.success++;
-      if (++batchOps >= BATCH_LIMIT) { await batch.commit(); batch = fdb.batch(); batchOps = 0; }
-    }
-    if (batchOps > 0) await batch.commit();
-    logAct(session?.user_id, 'import_teachers', `นำเข้าอาจารย์ ${results.success} คน`);
-    return ok({ results, message:`นำเข้าสำเร็จ ${results.success} คน${results.failed?`, ล้มเหลว ${results.failed} คน`:''}` });
   }
 
   async function doGetClassroomTeachers(params) {
@@ -697,6 +574,17 @@
     return ok({ data:recent });
   }
 
+  // เรียก Cloud Function (onCall) แล้วห่อผลลัพธ์ให้เป็น Response เหมือน mkRes()
+  // เพื่อให้โค้ดฝั่ง client เดิม (เช่น admin.html submitUser()) ใช้ await res.json() ได้เหมือนเดิม
+  async function callFn(name, body) {
+    try {
+      const res = await ffns.httpsCallable(name)(body);
+      return mkRes(res.data);
+    } catch (e) {
+      return fail(e.message || 'เกิดข้อผิดพลาด');
+    }
+  }
+
   // ════════════════════════════════════════════════════════════════
   // ROUTER
   // ════════════════════════════════════════════════════════════════
@@ -711,17 +599,17 @@
     const path = url.pathname.replace(/\\/g, '/');
 
     if (path.endsWith('login.php'))  return doLogin(body);
-    if (path.endsWith('logout.php')) { sessionStorage.removeItem('user_session'); return ok({ message:'ออกจากระบบแล้ว' }); }
+    if (path.endsWith('logout.php')) { await fauth.signOut(); sessionStorage.removeItem('user_session'); return ok({ message:'ออกจากระบบแล้ว' }); }
     if (path.endsWith('config.php')) return ok({ mode:'firebasedb' });
 
     if (path.endsWith('admin.php')) {
       if (action==='dashboard')              return doAdminDashboard();
       if (action==='get_users')              return doGetUsers(params);
-      if (action==='create_user')            return doCreateUser(body, session);
-      if (action==='update_user')            return doUpdateUser(body, session);
+      if (action==='create_user')            return callFn('createUser', body);
+      if (action==='update_user')            return callFn('updateUser', body);
       if (action==='delete_user')            return doDeleteUser(body, session);
-      if (action==='remove_user')            return doRemoveUser(body, session);
-      if (action==='bulk_remove_users')      return doBulkRemoveUsers(body, session);
+      if (action==='remove_user')            return callFn('removeUser', body);
+      if (action==='bulk_remove_users')      return callFn('bulkRemoveUsers', body);
       if (action==='get_classrooms')         return doAdminGetClassrooms();
       if (action==='create_classroom')       return doCreateClassroom(body, session);
       if (action==='update_classroom')       return doUpdateClassroom(body, session);
@@ -731,8 +619,8 @@
       if (action==='get_settings')           return doGetSettings();
       if (action==='save_settings')          return doSaveSettings(body);
       if (action==='export_students')        return doExportStudents();
-      if (action==='import_students')        return doImportStudents(body, session);
-      if (action==='import_teachers')        return doImportTeachers(body, session);
+      if (action==='import_students')        return callFn('importStudents', body);
+      if (action==='import_teachers')        return callFn('importTeachers', body);
       if (action==='get_classroom_teachers') return doGetClassroomTeachers(params);
       if (action==='get_all_assignments')    return doGetAllAssignments();
       if (action==='assign_teacher')         return doAssignTeacher(body);

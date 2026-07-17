@@ -47,7 +47,7 @@ async function apiCall(endpoint, method = 'GET', data = null, showLoader = false
     if (data && method !== 'GET') options.body = JSON.stringify(data);
     const res = await fetch(endpoint, options);
     const json = await res.json();
-    if (!res.ok && res.status === 401) { window.location.href = 'index.html'; return null; }
+    if (!res.ok && res.status === 401) { window.location.replace('index.html'); return null; }
     return json;
   } catch (err) {
     console.error('API Error:', err);
@@ -154,17 +154,27 @@ function initSidebar() {
   const sidebar = document.querySelector('.sidebar');
   if (!toggle || !sidebar) return;
 
+  const backdrop = document.createElement('div');
+  backdrop.className = 'sidebar-backdrop';
+  document.body.appendChild(backdrop);
+
+  const syncBackdrop = () => backdrop.classList.toggle('show', sidebar.classList.contains('open'));
+  const closeSidebar = () => { sidebar.classList.remove('open'); syncBackdrop(); };
+
+  backdrop.addEventListener('click', closeSidebar);
+
   toggle.addEventListener('click', () => {
     if (window.innerWidth > 768) {
       document.body.classList.toggle('sidebar-collapsed');
     } else {
       sidebar.classList.toggle('open');
+      syncBackdrop();
     }
   });
 
   document.addEventListener('click', e => {
     if (window.innerWidth <= 768 && !sidebar.contains(e.target) && !toggle.contains(e.target))
-      sidebar.classList.remove('open');
+      closeSidebar();
   });
 }
 
@@ -179,7 +189,7 @@ async function logout() {
   showLoading();
   await apiCall(API_BASE + 'logout.php', 'POST');
   clearSession();
-  window.location.href = 'index.html';
+  window.location.replace('index.html');
 }
 
 // ── Dates ────────────────────────────────────────────────────
